@@ -15,6 +15,7 @@ type PdfViewerPanelProps = {
   documentName: string
   file: File | null
   pages: number[]
+  isClosing?: boolean
   onClose: () => void
 }
 
@@ -58,7 +59,7 @@ function isCancelled(error: unknown) {
   return error instanceof Error && error.name === "RenderingCancelledException"
 }
 
-export function PdfViewerPanel({ tag, documentName, file, pages, onClose }: PdfViewerPanelProps) {
+export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = false, onClose }: PdfViewerPanelProps) {
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<RenderTask | null>(null)
@@ -71,6 +72,10 @@ export function PdfViewerPanel({ tag, documentName, file, pages, onClose }: PdfV
 
   const pageNumbers = pages.length > 0 ? pages : [1]
   const currentPage = pageNumbers[Math.min(pageIndex, pageNumbers.length - 1)]
+
+  useEffect(() => {
+    setPageIndex(0)
+  }, [documentName, tag])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -94,9 +99,9 @@ export function PdfViewerPanel({ tag, documentName, file, pages, onClose }: PdfV
   }, [])
 
   useEffect(() => {
-    document.body.classList.add("has-pdf-viewer")
+    document.body.classList.toggle("has-pdf-viewer", !isClosing)
     return () => document.body.classList.remove("has-pdf-viewer")
-  }, [])
+  }, [isClosing])
 
   useEffect(() => {
     if (!file) {
@@ -179,7 +184,10 @@ export function PdfViewerPanel({ tag, documentName, file, pages, onClose }: PdfV
   }, [])
 
   return (
-    <aside aria-label={`${tag} occurrences in ${documentName}`} className="pdf-viewer-panel">
+    <aside
+      aria-label={`${tag} occurrences in ${documentName}`}
+      className={`pdf-viewer-panel${isClosing ? " is-closing" : ""}`}
+    >
       <header className="pdf-viewer-header">
         <div className="pdf-viewer-heading">
           <p className="pdf-viewer-file" title={documentName}>{documentName}</p>

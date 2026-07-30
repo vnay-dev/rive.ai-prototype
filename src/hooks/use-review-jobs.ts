@@ -450,9 +450,7 @@ export function useReviewJobs() {
   const toggleTag = useCallback((jobId: number, tag: string) => {
     updateJob(jobId, (job) => ({
       ...job,
-      expandedTags: job.expandedTags.includes(tag)
-        ? job.expandedTags.filter((entry) => entry !== tag)
-        : [...job.expandedTags, tag],
+      expandedTags: job.expandedTags.includes(tag) ? [] : [tag],
     }))
   }, [updateJob])
 
@@ -464,7 +462,13 @@ export function useReviewJobs() {
       } else {
         next[tag] = decision
       }
-      return { ...job, decisions: next, completedAt: null }
+      return {
+        ...job,
+        decisions: next,
+        completedAt: null,
+        expandedTags: job.expandedTags.filter((entry) => entry !== tag),
+        viewer: job.viewer?.tag === tag ? null : job.viewer,
+      }
     })
   }, [updateJob])
 

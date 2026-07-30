@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
-import { Check, Circle, CircleAlert, LoaderCircle, Search, Trash2, Upload } from "lucide-react"
+import { Check, ChevronLeft, Circle, CircleAlert, LoaderCircle, Search, Trash2, Upload } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { GridLayout } from "@/components/layout/grid-layout"
@@ -8,7 +8,7 @@ import { PdfViewerPanel } from "@/components/review/pdf-viewer-panel"
 import { ProcessingStatus } from "@/components/review/processing-status"
 import { TagAccordion, type TagDecision } from "@/components/review/tag-accordion"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { useReviewJobs, type NewUploadEntry, type SaveStatus } from "@/hooks/use-review-jobs"
+import { useReviewJobs, type NewUploadEntry } from "@/hooks/use-review-jobs"
 import { buildReviewExportRows } from "@/lib/export-review"
 import { groupExtractedTags } from "@/lib/review"
 import {
@@ -20,6 +20,9 @@ import {
   type RuntimeUploadItem,
   type UploadItemKind,
 } from "@/lib/review-jobs"
+
+/** Matches the panel's slide-out animation so it stays mounted until it finishes. */
+const VIEWER_CLOSE_MS = 260
 
 type DuplicatePrompt = {
   conflictName: string
@@ -37,8 +40,6 @@ type PendingDuplicate = {
 type SidebarProps = {
   jobs?: RuntimeReviewJob[]
   activeJobId: number | null
-  saveStatus: SaveStatus
-  saveError: string | null
   onNewReviewJob: () => void
   onSearchReviewJobs: () => void
   onSelectJob: (id: number) => void
@@ -47,54 +48,9 @@ type SidebarProps = {
   onDeleteJob?: (id: number) => void
 }
 
-function saveStatusLabel(status: SaveStatus) {
-  if (status === "saving") return "Saving…"
-  if (status === "saved") return "Saved locally"
-  if (status === "error") return "Save failed"
-  return null
-}
-
-function SidebarJobStatusIcon({ status, title }: { status: JobSidebarStatus; title?: string }) {
-  if (status === "idle") {
-    return <span aria-hidden="true" className="sidebar-job-icon is-empty" />
-  }
-
-  if (status === "processing") {
-    return (
-      <span aria-label={title} className="sidebar-job-icon is-processing" title={title}>
-        <LoaderCircle aria-hidden="true" className="sidebar-job-spinner" size={14} strokeWidth={2.2} />
-      </span>
-    )
-  }
-
-  if (status === "error") {
-    return (
-      <span aria-label={title} className="sidebar-job-icon is-error" title={title}>
-        <CircleAlert aria-hidden="true" size={14} strokeWidth={2.2} />
-      </span>
-    )
-  }
-
-  if (status === "ready") {
-    return (
-      <span aria-label={title} className="sidebar-job-icon is-ready" title={title}>
-        <Circle aria-hidden="true" size={14} strokeWidth={2.2} />
-      </span>
-    )
-  }
-
-  return (
-    <span aria-label={title} className="sidebar-job-icon is-completed" title={title}>
-      <Check aria-hidden="true" size={14} strokeWidth={2.4} />
-    </span>
-  )
-}
-
 function Sidebar({
   jobs = [],
   activeJobId,
-  saveStatus,
-  saveError,
   onNewReviewJob,
   onSearchReviewJobs,
   onSelectJob,
@@ -102,8 +58,6 @@ function Sidebar({
   onPinJob,
   onDeleteJob,
 }: SidebarProps) {
-  const statusText = saveStatusLabel(saveStatus)
-
   return (
     <div className="sidebar-content">
       <a className="brand" href="/">
@@ -145,14 +99,44 @@ function Sidebar({
         <span>
           <strong>Vinay Krishnan</strong>
           <small>Workspace</small>
-          {statusText && (
-            <small className={`sidebar-save-status${saveStatus === "error" ? " is-error" : ""}`} title={saveError ?? undefined}>
-              {statusText}
-            </small>
-          )}
         </span>
       </div>
     </div>
+  )
+}
+function SidebarJobStatusIcon({ status, title }: { status: JobSidebarStatus; title?: string }) {
+  if (status === "idle") {
+    return <span aria-hidden="true" className="sidebar-job-icon is-empty" />
+  }
+
+  if (status === "processing") {
+    return (
+      <span aria-label={title} className="sidebar-job-icon is-processing" title={title}>
+        <LoaderCircle aria-hidden="true" className="sidebar-job-spinner" size={14} strokeWidth={2.2} />
+      </span>
+    )
+  }
+
+  if (status === "error") {
+    return (
+      <span aria-label={title} className="sidebar-job-icon is-error" title={title}>
+        <CircleAlert aria-hidden="true" size={14} strokeWidth={2.2} />
+      </span>
+    )
+  }
+
+  if (status === "ready") {
+    return (
+      <span aria-label={title} className="sidebar-job-icon is-ready" title={title}>
+        <Circle aria-hidden="true" size={14} strokeWidth={2.2} />
+      </span>
+    )
+  }
+
+  return (
+    <span aria-label={title} className="sidebar-job-icon is-completed" title={title}>
+      <Check aria-hidden="true" size={14} strokeWidth={2.4} />
+    </span>
   )
 }
 
@@ -359,6 +343,8 @@ function UploadView({
   const [isDragging, setIsDragging] = useState(false)
   const [duplicatePrompt, setDuplicatePrompt] = useState<DuplicatePrompt | null>(null)
   const [isExportSummaryOpen, setIsExportSummaryOpen] = useState(false)
+  const [mountedViewer, setMountedViewer] = useState(job.viewer)
+  const [isViewerClosing, setIsViewerClosing] = useState(false)
 
   useEffect(() => {
     itemsRef.current = job.items
@@ -386,10 +372,27 @@ function UploadView({
     [job.review, job.decisions, fallbackDocumentName],
   )
 
-  const viewerDocument = job.viewer
+  // Keep the viewer mounted through its closing animation, whether it was dismissed
+  // directly or cleared by a tag decision.
+  useEffect(() => {
+    if (job.viewer) {
+      setMountedViewer(job.viewer)
+      setIsViewerClosing(false)
+      return
+    }
+
+    setIsViewerClosing(true)
+    const timer = window.setTimeout(() => {
+      setMountedViewer(null)
+      setIsViewerClosing(false)
+    }, VIEWER_CLOSE_MS)
+    return () => window.clearTimeout(timer)
+  }, [job.viewer])
+
+  const viewerDocument = mountedViewer
     ? tagGroups
-      .find((group) => group.tag === job.viewer?.tag)
-      ?.documents.find((document) => document.name === job.viewer?.documentName)
+      .find((group) => group.tag === mountedViewer.tag)
+      ?.documents.find((document) => document.name === mountedViewer.documentName)
     : undefined
 
   useEffect(() => {
@@ -605,80 +608,84 @@ function UploadView({
   return (
     <>
       <header className="page-header">
-        <div>
-          <h2>{job.phase === "results" ? "Review results" : "Upload documents"}</h2>
-          <p className="page-subtitle">
-            {job.phase === "results"
-              ? "AI-assisted tags extracted from your uploaded documents."
-              : "Turn engineering drawings into trusted, searchable data with AI-assisted tag extraction and review."}
-          </p>
-        </div>
-        {job.phase === "results" ? (
-          <div className="page-header-actions">
-            <button className="secondary-button" onClick={onBackToUpload} type="button">
-              Back to upload
-            </button>
-            <div className="review-complete-control">
-              <div
-                aria-label={`Review progress ${reviewProgress.resolved} of ${reviewProgress.total}`}
-                aria-valuemax={reviewProgress.total}
-                aria-valuemin={0}
-                aria-valuenow={reviewProgress.resolved}
-                className="review-complete-progress"
-                role="progressbar"
-              >
-                <span className="review-complete-track">
+        {job.phase === "results" && (
+          <button className="page-back-link" onClick={onBackToUpload} type="button">
+            <ChevronLeft aria-hidden="true" size={14} strokeWidth={2.2} />
+            Back to upload
+          </button>
+        )}
+        <div className="page-header-main">
+          <div className="page-header-titles">
+            <h2>{job.phase === "results" ? "Review results" : "Upload documents"}</h2>
+            <p className="page-subtitle">
+              {job.phase === "results" ? (
+                <>
+                  <span className="page-subtitle-emphasis">
+                    {tagGroups.length} {tagGroups.length === 1 ? "engineering tag" : "engineering tags"} 
+                  </span>
+                  {" "}identified and ready for review.
+                </>
+              ) : (
+                "Turn engineering drawings into trusted, searchable data with AI-assisted tag extraction and review."
+              )}
+            </p>
+          </div>
+          {job.phase === "results" ? (
+            <div className="page-header-actions">
+              <div className="review-complete-control">
+                <button
+                  aria-label={`Mark as complete — ${reviewProgress.resolved} of ${reviewProgress.total} tags reviewed`}
+                  className={`primary-button review-complete-button ${
+                    job.completedAt ? "is-complete" : canMarkComplete ? "is-ready" : "is-pending"
+                  }`}
+                  disabled={!canMarkComplete || Boolean(job.completedAt)}
+                  onClick={onMarkComplete}
+                  type="button"
+                >
                   <span
-                    className="review-complete-bar"
+                    aria-hidden="true"
+                    className="review-complete-fill"
                     style={{ width: `${reviewProgressPercent}%` }}
                   />
-                </span>
-                {reviewProgress.resolved < reviewProgress.total && (
-                  <span className="review-complete-fraction" aria-live="polite">
-                    {reviewProgress.resolved}/{reviewProgress.total}
+                  <span className="review-complete-label">
+                    {(canMarkComplete || job.completedAt) && (
+                      <Check aria-hidden="true" size={15} strokeWidth={2.4} />
+                    )}
+                    {job.completedAt ? "Completed" : "Mark as complete"}
+                    {!canMarkComplete && reviewProgress.total > 0 && (
+                      <span className="review-complete-fraction">
+                        {reviewProgress.resolved}/{reviewProgress.total}
+                      </span>
+                    )}
                   </span>
-                )}
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={!job.completedAt}
+                  onClick={() => setIsExportSummaryOpen(true)}
+                  type="button"
+                >
+                  Export as Excel
+                </button>
               </div>
-              <button
-                className="primary-button"
-                disabled={!canMarkComplete || Boolean(job.completedAt)}
-                onClick={onMarkComplete}
-                type="button"
-              >
-                {job.completedAt ? "Completed" : "Mark as complete"}
-              </button>
-              <button
-                className="secondary-button"
-                disabled={!job.completedAt}
-                onClick={() => setIsExportSummaryOpen(true)}
-                type="button"
-              >
-                Export as Excel
-              </button>
             </div>
-          </div>
-        ) : job.phase === "upload" && job.items.length > 0 ? (
-          <button
-            className="primary-button"
-            disabled={isUploading}
-            onClick={onStartReview}
-            type="button"
-          >
-            Extract tags
-          </button>
-        ) : null}
+          ) : job.phase === "upload" && job.items.length > 0 ? (
+            <button
+              className="primary-button"
+              disabled={isUploading}
+              onClick={onStartReview}
+              type="button"
+            >
+              Extract tags
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {job.phase === "reviewing" ? (
         <ProcessingStatus />
       ) : job.phase === "results" && job.review ? (
         <section className="review-results" aria-label="Review results">
-          {job.reviewSource === "mock" && (
-            <p className="review-source-note">Showing sample results — live review unavailable.</p>
-          )}
-          <p className="review-summary">
-            {tagGroups.length} {tagGroups.length === 1 ? "tag" : "tags"} extracted
-          </p>
           <TagAccordion
             activeOccurrence={job.viewer}
             decisions={job.decisions}
@@ -787,14 +794,14 @@ function UploadView({
         </div>
       )}
 
-      {job.viewer && viewerDocument && (
+      {mountedViewer && viewerDocument && (
         <PdfViewerPanel
           documentName={viewerDocument.name}
           file={findDocumentFile(job.items, viewerDocument.name)}
-          key={`${job.viewer.tag}-${viewerDocument.name}`}
+          isClosing={isViewerClosing}
           onClose={() => onSetViewer(null)}
           pages={viewerDocument.pages}
-          tag={job.viewer.tag}
+          tag={mountedViewer.tag}
         />
       )}
 
@@ -848,9 +855,11 @@ function SearchReviewJobs({
   return (
     <>
       <header className="page-header search-page-header">
-        <div>
-          <h2>Search review jobs</h2>
-          <p className="page-subtitle">Find a job by its title, files, document content, or tags.</p>
+        <div className="page-header-main">
+          <div className="page-header-titles">
+            <h2>Search review jobs</h2>
+            <p className="page-subtitle">Find a job by its title, files, document content, or tags.</p>
+          </div>
         </div>
       </header>
       <section className="job-search" aria-label="Search review jobs">
@@ -997,8 +1006,6 @@ export function HomePage() {
     activeJob,
     activeJobId,
     isHydrating,
-    saveStatus,
-    saveError,
     createJob,
     selectJob,
     renameJob,
@@ -1039,8 +1046,6 @@ export function HomePage() {
           onRenameJob={renameJob}
           onSearchReviewJobs={() => setActiveView("search")}
           onSelectJob={handleSelectJob}
-          saveError={saveError}
-          saveStatus={saveStatus}
         />
       )}
     >
