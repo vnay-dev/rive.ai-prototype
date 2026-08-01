@@ -353,7 +353,9 @@ export function PdfViewerPanel({
   }, [panelWidth])
 
   useEffect(() => {
-    return () => document.body.style.removeProperty("--pdf-viewer-width")
+    return () => {
+      document.body.style.removeProperty("--pdf-viewer-width")
+    }
   }, [])
 
   useEffect(() => {
