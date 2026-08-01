@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown, Download } from "lucide-react"
 
+import { SlidingMenuHoverIndicator } from "@/components/ui/sliding-menu-hover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   downloadReviewExport,
@@ -12,10 +13,13 @@ type ExportMenuProps = {
   jobName: string
   rows: ReviewExportRow[]
   onExported?: () => void
+  /** Sliding hover slab between menu options. Used by version 4. */
+  slidingHover?: boolean
 }
 
-export function ExportMenu({ jobName, rows, onExported }: ExportMenuProps) {
+export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: ExportMenuProps) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
 
@@ -79,7 +83,12 @@ export function ExportMenu({ jobName, rows, onExported }: ExportMenuProps) {
       </Tooltip>
 
       {isOpen && (
-        <div className="export-menu-popover" role="menu">
+        <div
+          className={`export-menu-popover${slidingHover ? " has-sliding-hover" : ""}`}
+          ref={popoverRef}
+          role="menu"
+        >
+          {slidingHover && <SlidingMenuHoverIndicator containerRef={popoverRef} />}
           <button
             className="export-menu-item"
             onClick={() => void exportAs("excel")}

@@ -10,10 +10,11 @@ export type SidebarRenderProps = {
 type AppLayoutProps = {
   sidebar: ReactNode | ((props: SidebarRenderProps) => ReactNode)
   children: ReactNode
+  className?: string
 }
 
 /** The application shell: persistent desktop navigation and flexible page area. */
-export function AppLayout({ sidebar, children }: AppLayoutProps) {
+export function AppLayout({ sidebar, children, className }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -26,7 +27,7 @@ export function AppLayout({ sidebar, children }: AppLayoutProps) {
       : sidebar
 
   return (
-    <div className={`app-shell ${isCollapsed ? "is-sidebar-collapsed" : ""}`}>
+    <div className={`app-shell ${isCollapsed ? "is-sidebar-collapsed" : ""}${className ? ` ${className}` : ""}`}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button

@@ -27,6 +27,13 @@ export function LandingPage() {
             action buttons themselves (Approve becomes Approved, with status color).
           </span>
         </Link>
+        <Link className="prototype-version-card" to="/version4">
+          <strong>Version 4</strong>
+          <span>
+            Fork of Version 1 for visual design and interaction polish. Same sidebar
+            layout and occurrence-level review, ready to be restyled independently.
+          </span>
+        </Link>
       </div>
     </main>
   )

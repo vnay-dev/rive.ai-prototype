@@ -17,10 +17,6 @@ type TagFindingRow = {
   rejected: number
 }
 
-function pluralize(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`
-}
-
 function TagStatusCell({ approved, rejected }: { approved: number; rejected: number }) {
   if (approved === 0 && rejected === 0) return <>—</>
 
@@ -71,15 +67,11 @@ export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps)
     const documents = new Set(
       tagGroups.flatMap((group) => group.documents.map((document) => document.name)),
     ).size
-    const occurrences = tagRows.reduce((total, row) => total + row.occurrences, 0)
-    const split = tagRows.filter((row) => row.approved > 0 && row.rejected > 0).length
     return {
       tags: tagRows.length,
       documents,
-      occurrences,
       approved: tagRows.filter((row) => row.approved > 0 && row.rejected === 0).length,
       rejected: tagRows.filter((row) => row.rejected > 0 && row.approved === 0).length,
-      split,
       progress: rows.length === 0 ? 0 : 100,
     }
   }, [rows.length, tagGroups, tagRows])
@@ -110,19 +102,6 @@ export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps)
       </div>
 
       <div className="review-summary-panel">
-        <div className="review-summary-panel-header">
-          <h3>Findings by tag</h3>
-          <p className="review-summary-panel-meta">
-            {pluralize(summary.tags, "tag")}
-            {" · "}
-            {pluralize(summary.occurrences, "occurrence")} across{" "}
-            {pluralize(summary.documents, "document")}
-            {summary.split > 0
-              ? ` · ${pluralize(summary.split, "tag")} with both outcomes`
-              : ""}
-          </p>
-        </div>
-
         <div className="review-summary-table-wrap">
           <table className="review-summary-table">
             <thead>

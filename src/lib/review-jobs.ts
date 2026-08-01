@@ -378,7 +378,7 @@ export type JobHistoryEvent = {
   at: number
 }
 
-export function formatJobTimestamp(value: number) {
+export function formatJobTimestampParts(value: number) {
   const date = new Date(value)
   const datePart = date.toLocaleDateString("en-US", {
     month: "short",
@@ -389,6 +389,11 @@ export function formatJobTimestamp(value: number) {
     hour: "numeric",
     minute: "2-digit",
   })
+  return { datePart, timePart }
+}
+
+export function formatJobTimestamp(value: number) {
+  const { datePart, timePart } = formatJobTimestampParts(value)
   return `${datePart} • ${timePart}`
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { ChevronDown, ChevronLeft, ChevronRight, Eye } from "lucide-react"
+import { Check, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Eye, X } from "lucide-react"
 
 import type { TagGroup } from "@/lib/review"
 
@@ -87,6 +87,15 @@ export function TagAccordion({
                 </span>
                 {decision && (
                   <span className={`tag-decision-chip is-${decision}`}>
+                    {decision === "approved" && (
+                      <Check aria-hidden="true" size={12} strokeWidth={2.4} />
+                    )}
+                    {decision === "rejected" && (
+                      <X aria-hidden="true" size={12} strokeWidth={2.4} />
+                    )}
+                    {decision === "needs-review" && (
+                      <CircleAlert aria-hidden="true" size={12} strokeWidth={2.4} />
+                    )}
                     {DECISION_LABELS[decision]}
                   </span>
                 )}

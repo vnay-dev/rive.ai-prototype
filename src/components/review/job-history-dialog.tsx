@@ -1,10 +1,11 @@
 import { useEffect, useId } from "react"
 import { createPortal } from "react-dom"
+import { History } from "lucide-react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   buildJobHistoryEvents,
-  formatJobTimestamp,
+  formatJobTimestampParts,
   getJobDetailsStatusLabel,
   getJobExtractedTagCount,
   getJobSidebarStatus,
@@ -14,6 +15,17 @@ import {
 type JobHistoryDialogProps = {
   job: RuntimeReviewJob
   onClose: () => void
+}
+
+function JobTimestamp({ value }: { value: number }) {
+  const { datePart, timePart } = formatJobTimestampParts(value)
+  return (
+    <>
+      {datePart}
+      <span aria-hidden="true" className="job-timestamp-sep">•</span>
+      {timePart}
+    </>
+  )
 }
 
 export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
@@ -41,7 +53,7 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
       >
         <header className="job-history-header">
           <div className="job-history-heading">
-            <p className="job-history-eyebrow">Job details</p>
+            <p className="job-history-eyebrow">Review job details</p>
             <h2 id={titleId} title={job.name}>{job.name}</h2>
           </div>
           <Tooltip>
@@ -70,11 +82,11 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
             </div>
             <div>
               <dt>Created</dt>
-              <dd>{formatJobTimestamp(job.createdAt)}</dd>
+              <dd><JobTimestamp value={job.createdAt} /></dd>
             </div>
             <div>
               <dt>Last Updated</dt>
-              <dd>{formatJobTimestamp(job.updatedAt)}</dd>
+              <dd><JobTimestamp value={job.updatedAt} /></dd>
             </div>
             <div>
               <dt>Documents</dt>
@@ -87,7 +99,10 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
           </dl>
 
           <section aria-label="History" className="job-history-timeline">
-            <h3>History</h3>
+            <h3>
+              <History aria-hidden="true" size={14} strokeWidth={2} />
+              History
+            </h3>
             <ol>
               {history.map((event, index) => (
                 <li
@@ -96,10 +111,10 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
                 >
                   <span className="job-history-dot" aria-hidden="true" />
                   <div>
-                    <strong>{event.label}</strong>
                     <time dateTime={new Date(event.at).toISOString()}>
-                      {formatJobTimestamp(event.at)}
+                      <JobTimestamp value={event.at} />
                     </time>
+                    <strong>{event.label}</strong>
                   </div>
                 </li>
               ))}
