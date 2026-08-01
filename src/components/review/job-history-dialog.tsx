@@ -1,6 +1,7 @@
 import { useEffect, useId } from "react"
 import { createPortal } from "react-dom"
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   buildJobHistoryEvents,
   formatJobTimestamp,
@@ -43,15 +44,20 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
             <p className="job-history-eyebrow">Job details</p>
             <h2 id={titleId} title={job.name}>{job.name}</h2>
           </div>
-          <button
-            aria-label="Close job details"
-            autoFocus
-            className="export-summary-close"
-            onClick={onClose}
-            type="button"
-          >
-            ×
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-label="Close job details"
+                autoFocus
+                className="export-summary-close"
+                onClick={onClose}
+                type="button"
+              >
+                ×
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Close</TooltipContent>
+          </Tooltip>
         </header>
 
         <div className="job-history-body">

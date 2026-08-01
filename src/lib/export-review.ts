@@ -51,6 +51,17 @@ function safeFileName(name: string) {
   return sanitized || "review-results"
 }
 
+function triggerBrowserDownload(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+export type ReviewExportFormat = "excel" | "csv"
+
 export async function downloadReviewWorkbook(jobName: string, rows: ReviewExportRow[]) {
   const header = ["Tag", "Document", "Page", "Occurrence", "Confidence", "Status"]
     .map((value) => ({
@@ -85,4 +96,43 @@ export async function downloadReviewWorkbook(jobName: string, rows: ReviewExport
   })
 
   await workbook.toFile(`${safeFileName(jobName)}.xlsx`)
+}
+
+export function downloadReviewCsv(jobName: string, rows: ReviewExportRow[]) {
+  const headers = ["Tag", "Document", "Page", "Occurrence", "Confidence", "Status"]
+
+  function escapeCsv(value: string | number) {
+    const text = String(value)
+    if (/[",\n\r]/.test(text)) return `"${text.replace(/"/g, '""')}"`
+    return text
+  }
+
+  const lines = [
+    headers.join(","),
+    ...rows.map((row) => [
+      row.tag,
+      row.document,
+      row.page,
+      row.occurrence,
+      `${row.confidence}%`,
+      row.status,
+    ].map(escapeCsv).join(",")),
+  ]
+
+  triggerBrowserDownload(
+    new Blob([`${lines.join("\n")}\n`], { type: "text/csv;charset=utf-8" }),
+    `${safeFileName(jobName)}.csv`,
+  )
+}
+
+export async function downloadReviewExport(
+  jobName: string,
+  rows: ReviewExportRow[],
+  format: ReviewExportFormat,
+) {
+  if (format === "csv") {
+    downloadReviewCsv(jobName, rows)
+    return
+  }
+  await downloadReviewWorkbook(jobName, rows)
 }

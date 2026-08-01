@@ -1,10 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 
 import type { ExtractionProgress } from "@/lib/review-jobs"
-
-type ProcessingStatusProps = {
-  progress?: ExtractionProgress | null
-}
 
 type Stage = "preparing" | "reading" | "analyzing"
 
@@ -27,16 +23,13 @@ function resolveStage(progress: ExtractionProgress | null | undefined): Stage {
   return "reading"
 }
 
-export function ProcessingStatus({ progress = null }: ProcessingStatusProps) {
+export function useExtractionStatusMessage(progress: ExtractionProgress | null | undefined = null) {
   const stage = resolveStage(progress)
   const documentsTotal = Math.max(progress?.documentsTotal ?? 0, 0)
   const documentsProcessed = Math.min(
     Math.max(progress?.documentsProcessed ?? 0, 0),
     documentsTotal || 0,
   )
-  const readingPercent = documentsTotal === 0
-    ? 8
-    : Math.round((documentsProcessed / documentsTotal) * 70)
 
   const [tick, setTick] = useState(false)
   const [holdingReading, setHoldingReading] = useState(stage === "analyzing")
@@ -45,9 +38,6 @@ export function ProcessingStatus({ progress = null }: ProcessingStatusProps) {
   const previousStageRef = useRef(stage)
 
   const displayStage: Stage = stage === "analyzing" && holdingReading ? "reading" : stage
-  const percent = displayStage === "analyzing"
-    ? Math.max(readingPercent, 82)
-    : Math.max(8, Math.min(readingPercent, 70))
 
   useEffect(() => {
     if (previousCountRef.current === documentsProcessed) return
@@ -103,35 +93,45 @@ export function ProcessingStatus({ progress = null }: ProcessingStatusProps) {
       ? "reading-hold"
       : displayStage
 
-  return (
-    <section className="review-status extraction-progress" aria-busy="true" aria-live="polite">
-      <p className="processing-message" key={messageKey}>
-        {displayStage === "preparing" && "Preparing extraction…"}
-        {displayStage === "reading" && (
-          <>
-            Reading documents (
-            <span className="processing-count">
-              <span
-                className={`processing-count-current${tick ? " is-ticking" : ""}`}
-                style={{ minWidth: `${countDigits}ch` }}
-              >
-                {displayProcessed}
-              </span>
-              <span aria-hidden="true">/</span>
-              <span>{documentsTotal}</span>
-            </span>
-            )…
-          </>
-        )}
-        {displayStage === "analyzing" && ANALYZING_MESSAGES[analyzingIndex]}
-      </p>
+  let message: ReactNode = "Preparing extraction…"
+  if (displayStage === "reading") {
+    message = (
+      <>
+        Reading documents (
+        <span className="processing-count">
+          <span
+            className={`processing-count-current${tick ? " is-ticking" : ""}`}
+            style={{ minWidth: `${countDigits}ch` }}
+          >
+            {displayProcessed}
+          </span>
+          <span aria-hidden="true">/</span>
+          <span>{documentsTotal}</span>
+        </span>
+        )…
+      </>
+    )
+  } else if (displayStage === "analyzing") {
+    message = ANALYZING_MESSAGES[analyzingIndex]
+  }
 
-      <div
-        aria-label={`Extraction progress ${percent}%`}
-        className="extraction-progress-track"
-      >
-        <span className="extraction-progress-fill" style={{ width: `${percent}%` }} />
-      </div>
-    </section>
+  return { message, messageKey }
+}
+
+type ExtractionStatusMessageProps = {
+  progress?: ExtractionProgress | null
+  className?: string
+}
+
+export function ExtractionStatusMessage({
+  progress = null,
+  className = "processing-message",
+}: ExtractionStatusMessageProps) {
+  const { message, messageKey } = useExtractionStatusMessage(progress)
+
+  return (
+    <p aria-live="polite" className={className} key={messageKey}>
+      {message}
+    </p>
   )
 }

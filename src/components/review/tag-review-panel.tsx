@@ -12,6 +12,7 @@ import { isResolvedTagDecision, type ReviewViewerTarget } from "@/lib/review-job
 export type { TagDecision }
 
 export type TagReviewVariant = "sidebar" | "pills"
+export type DecisionStatusStyle = "chip" | "button"
 
 const DECISION_LABELS: Record<TagDecision, string> = {
   approved: "Approved",
@@ -21,6 +22,7 @@ const DECISION_LABELS: Record<TagDecision, string> = {
 
 type TagReviewPanelProps = {
   variant: TagReviewVariant
+  decisionStyle?: DecisionStatusStyle
   groups: TagGroup[]
   fallbackDocument: string
   review: import("@/lib/review").ReviewResult
@@ -31,7 +33,9 @@ type TagReviewPanelProps = {
 }
 
 function pluralize(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`
+  if (count === 1) return `${count} ${singular}`
+  const plural = /(?:s|x|z|ch|sh)$/i.test(singular) ? `${singular}es` : `${singular}s`
+  return `${count} ${plural}`
 }
 
 function tagProgress(
@@ -51,6 +55,7 @@ function occurrenceMatches(target: ReviewViewerTarget | null | undefined, occurr
 
 export function TagReviewPanel({
   variant,
+  decisionStyle = "chip",
   groups,
   fallbackDocument,
   review,
@@ -150,6 +155,7 @@ export function TagReviewPanel({
                     aria-current={isActive ? "true" : undefined}
                     className={`tag-review-nav-item${isActive ? " is-active" : ""}${isComplete ? " is-complete" : ""}`}
                     onClick={() => selectTag(group.tag)}
+                    title={isComplete ? "All occurrences reviewed" : undefined}
                     type="button"
                   >
                     {isComplete ? (
@@ -246,43 +252,62 @@ export function TagReviewPanel({
                           <div className="tag-review-occurrence-info">
                             <div className="tag-review-occurrence-title">
                               <strong>Page {occurrence.page}</strong>
-                              {decision && (
-                                <span className={`tag-decision-chip is-${decision}`}>
-                                  {DECISION_LABELS[decision]}
-                                </span>
-                              )}
                             </div>
-                            <span>{pluralize(occurrence.occurrences, "match")}</span>
+                            <div className="tag-review-occurrence-meta">
+                              <span>{pluralize(occurrence.occurrences, "match")}</span>
+                              <span aria-hidden="true" className="tag-review-occurrence-sep" />
+                              <button
+                                className="tertiary-button tag-occurrence-view"
+                                onClick={() => viewOccurrence(occurrence)}
+                                type="button"
+                              >
+                                <Eye aria-hidden="true" size={14} strokeWidth={1.9} />
+                                View
+                              </button>
+                            </div>
                           </div>
                           <div className="tag-review-occurrence-actions">
+                            {decisionStyle === "chip" && decision && (
+                              <span className={`tag-decision-chip is-${decision}`}>
+                                {DECISION_LABELS[decision]}
+                              </span>
+                            )}
                             <button
-                              className="tag-occurrence-view"
-                              onClick={() => viewOccurrence(occurrence)}
-                              type="button"
-                            >
-                              <Eye aria-hidden="true" size={14} strokeWidth={1.9} />
-                              View
-                            </button>
-                            <button
-                              className={`secondary-button${decision === "rejected" ? " is-selected" : ""}`}
+                              className={`secondary-button${
+                                decision === "rejected"
+                                  ? ` is-selected${decisionStyle === "button" ? " is-rejected" : ""}`
+                                  : ""
+                              }`}
                               onClick={() => onDecide(occurrence.key, "rejected")}
                               type="button"
                             >
-                              Reject
+                              {decisionStyle === "button" && decision === "rejected"
+                                ? "Rejected"
+                                : "Reject"}
                             </button>
                             <button
-                              className={`secondary-button${decision === "needs-review" ? " is-selected" : ""}`}
+                              className={`tertiary-button${
+                                decision === "needs-review"
+                                  ? ` is-selected${decisionStyle === "button" ? " is-needs-review" : ""}`
+                                  : ""
+                              }`}
                               onClick={() => onDecide(occurrence.key, "needs-review")}
                               type="button"
                             >
                               Needs review
                             </button>
                             <button
-                              className={`primary-button${decision === "approved" ? " is-selected" : ""}`}
+                              className={`primary-button${
+                                decision === "approved"
+                                  ? ` is-selected${decisionStyle === "button" ? " is-approved" : ""}`
+                                  : ""
+                              }`}
                               onClick={() => onDecide(occurrence.key, "approved")}
                               type="button"
                             >
-                              Approve
+                              {decisionStyle === "button" && decision === "approved"
+                                ? "Approved"
+                                : "Approve"}
                             </button>
                           </div>
                         </li>

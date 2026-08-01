@@ -22,4 +22,11 @@ export const router = createBrowserRouter([
       return { Component: Version2Page }
     },
   },
+  {
+    path: "/version3",
+    lazy: async () => {
+      const { Version3Page } = await import("@/pages/version3")
+      return { Component: Version3Page }
+    },
+  },
 ])

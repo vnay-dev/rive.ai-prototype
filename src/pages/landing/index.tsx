@@ -9,7 +9,8 @@ export function LandingPage() {
           <strong>Version 1</strong>
           <span>
             Tags live in a secondary sidebar, like review jobs. Select a tag to review
-            its documents and approve or reject each occurrence individually.
+            its documents and approve or reject each occurrence individually. Status
+            shows as a chip next to the action buttons.
           </span>
         </Link>
         <Link className="prototype-version-card" to="/version2">
@@ -17,6 +18,13 @@ export function LandingPage() {
           <span>
             Tags appear as a horizontally scrolling row of pills. Click a pill to open
             the same occurrence-level review panel underneath.
+          </span>
+        </Link>
+        <Link className="prototype-version-card" to="/version3">
+          <strong>Version 3</strong>
+          <span>
+            Same sidebar layout as Version 1, but selected status is shown on the
+            action buttons themselves (Approve becomes Approved, with status color).
           </span>
         </Link>
       </div>

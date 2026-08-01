@@ -198,8 +198,8 @@ export function useReviewJobs() {
       if (!jobsRef.current.some((entry) => entry.id === jobId)) return
       if (expectedReviewRunIdsRef.current.get(jobId) !== reviewRunId) return
 
-      // Keep the extracting screen visible long enough to read when mock/API finishes instantly.
-      const minReviewingMs = 900
+      // Keep footer status messages readable when mock/API finishes instantly.
+      const minReviewingMs = 5200
       const elapsed = Date.now() - reviewingStartedAt
       if (elapsed < minReviewingMs) {
         await new Promise((resolve) => window.setTimeout(resolve, minReviewingMs - elapsed))
@@ -213,6 +213,7 @@ export function useReviewJobs() {
         review: response.data,
         reviewSource: response.source,
         extractedAt: Date.now(),
+        reviewStartedAt: entry.reviewStartedAt ?? Date.now(),
         errorMessage: null,
         extractionProgress: null,
         tags: [...new Set([...entry.tags, ...response.data.map((tag) => tag.tag)])],
@@ -539,16 +540,6 @@ export function useReviewJobs() {
     }))
   }, [updateJob])
 
-  const beginReview = useCallback((jobId: number) => {
-    updateJob(jobId, (job) => {
-      if (job.phase !== "results" || !job.review) return job
-      return {
-        ...job,
-        reviewStartedAt: job.reviewStartedAt ?? Date.now(),
-      }
-    })
-  }, [updateJob])
-
   const setViewer = useCallback((
     jobId: number,
     viewer: ReviewViewerTarget | null,
@@ -587,7 +578,6 @@ export function useReviewJobs() {
     decideTag,
     markJobComplete,
     markJobExported,
-    beginReview,
     setViewer,
   }
 }

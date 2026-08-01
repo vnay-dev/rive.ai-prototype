@@ -401,10 +401,6 @@ export function getJobExtractedTagCount(job: RuntimeReviewJob) {
   ).size
 }
 
-export function hasStartedReview(job: Pick<RuntimeReviewJob, "reviewStartedAt" | "decisions">) {
-  return job.reviewStartedAt != null || Object.keys(job.decisions).length > 0
-}
-
 export function getExtractionSummary(
   review: ReviewResult,
   fallbackDocument = "Uploaded document",

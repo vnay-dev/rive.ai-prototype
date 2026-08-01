@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { Check, X } from "lucide-react"
 
 import type { ReviewExportRow } from "@/lib/export-review"
 import type { TagGroup } from "@/lib/review"
@@ -8,57 +9,84 @@ type ReviewSummaryPanelProps = {
   tagGroups: TagGroup[]
 }
 
+type TagFindingRow = {
+  tag: string
+  documents: number
+  occurrences: number
+  approved: number
+  rejected: number
+}
+
 function pluralize(count: number, singular: string) {
   return `${count} ${count === 1 ? singular : `${singular}s`}`
 }
 
+function TagStatusCell({ approved, rejected }: { approved: number; rejected: number }) {
+  if (approved === 0 && rejected === 0) return <>—</>
+
+  if (rejected === 0) {
+    return <span className="tag-decision-chip is-approved">Approved</span>
+  }
+
+  if (approved === 0) {
+    return <span className="tag-decision-chip is-rejected">Rejected</span>
+  }
+
+  return (
+    <span
+      aria-label={`${approved} approved, ${rejected} rejected`}
+      className="tag-status-split"
+    >
+      <span className="tag-status-split-part is-approved">
+        <Check aria-hidden="true" size={12} strokeWidth={2.4} />
+        <span>{approved}</span>
+      </span>
+      <span className="tag-status-split-part is-rejected">
+        <X aria-hidden="true" size={12} strokeWidth={2.4} />
+        <span>{rejected}</span>
+      </span>
+    </span>
+  )
+}
+
 export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps) {
+  const tagRows = useMemo<TagFindingRow[]>(() => {
+    return tagGroups.map((group) => {
+      const matching = rows.filter(
+        (row) => row.tag.toUpperCase() === group.tag.toUpperCase(),
+      )
+      const approved = matching.filter((row) => row.status === "Approved").length
+      const rejected = matching.length - approved
+      return {
+        tag: group.tag,
+        documents: group.documents.length,
+        occurrences: group.occurrences,
+        approved,
+        rejected,
+      }
+    })
+  }, [rows, tagGroups])
+
   const summary = useMemo(() => {
-    const approved = rows.filter((row) => row.status === "Approved").length
-    const documents = new Set(rows.map((row) => row.document)).size
-    const tags = new Set(rows.map((row) => row.tag.toUpperCase())).size
-    const occurrences = rows.reduce((total, row) => total + row.occurrence, 0)
+    const documents = new Set(
+      tagGroups.flatMap((group) => group.documents.map((document) => document.name)),
+    ).size
+    const occurrences = tagRows.reduce((total, row) => total + row.occurrences, 0)
+    const split = tagRows.filter((row) => row.approved > 0 && row.rejected > 0).length
     return {
-      approved,
-      rejected: rows.length - approved,
+      tags: tagRows.length,
       documents,
-      tags,
       occurrences,
+      approved: tagRows.filter((row) => row.approved > 0 && row.rejected === 0).length,
+      rejected: tagRows.filter((row) => row.rejected > 0 && row.approved === 0).length,
+      split,
       progress: rows.length === 0 ? 0 : 100,
     }
-  }, [rows])
-
-  const documentRows = useMemo(() => {
-    return tagGroups.flatMap((group) =>
-      group.documents.map((document) => {
-        const matching = rows.filter(
-          (row) =>
-            row.tag.toUpperCase() === group.tag.toUpperCase()
-            && row.document === document.name,
-        )
-        const approved = matching.filter((row) => row.status === "Approved").length
-        const rejected = matching.length - approved
-        let status = "—"
-        if (matching.length > 0) {
-          if (rejected === 0) status = "Approved"
-          else if (approved === 0) status = "Rejected"
-          else status = "Mixed"
-        }
-        return {
-          key: `${group.tag}::${document.name}`,
-          tag: group.tag,
-          document: document.name,
-          occurrences: document.occurrences,
-          pages: document.pages.length,
-          status,
-        }
-      }),
-    )
-  }, [rows, tagGroups])
+  }, [rows.length, tagGroups, tagRows])
 
   return (
     <section className="review-summary" aria-label="Review summary">
-      <div className="review-summary-stats" aria-label="Completion metrics">
+      <div className="summary-stats is-five" aria-label="Completion metrics">
         <span>
           <strong>{summary.tags}</strong>
           Tags identified
@@ -83,10 +111,15 @@ export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps)
 
       <div className="review-summary-panel">
         <div className="review-summary-panel-header">
-          <h3>Findings by document</h3>
-          <p>
+          <h3>Findings by tag</h3>
+          <p className="review-summary-panel-meta">
+            {pluralize(summary.tags, "tag")}
+            {" · "}
             {pluralize(summary.occurrences, "occurrence")} across{" "}
             {pluralize(summary.documents, "document")}
+            {summary.split > 0
+              ? ` · ${pluralize(summary.split, "tag")} with both outcomes`
+              : ""}
           </p>
         </div>
 
@@ -95,38 +128,26 @@ export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps)
             <thead>
               <tr>
                 <th>Tag</th>
-                <th>Document</th>
+                <th>Documents</th>
                 <th>Occurrences</th>
-                <th>Pages</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {documentRows.length > 0 ? (
-                documentRows.map((row) => (
-                  <tr key={row.key}>
-                    <td>{row.tag}</td>
-                    <td title={row.document}>{row.document}</td>
+              {tagRows.length > 0 ? (
+                tagRows.map((row) => (
+                  <tr key={row.tag}>
+                    <td title={row.tag}>{row.tag}</td>
+                    <td>{row.documents}</td>
                     <td>{row.occurrences}</td>
-                    <td>{row.pages}</td>
                     <td>
-                      {row.status === "—" ? (
-                        row.status
-                      ) : (
-                        <span
-                          className={`tag-decision-chip is-${
-                            row.status === "Mixed" ? "mixed" : row.status.toLowerCase()
-                          }`}
-                        >
-                          {row.status}
-                        </span>
-                      )}
+                      <TagStatusCell approved={row.approved} rejected={row.rejected} />
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5}>No validated findings to summarise.</td>
+                  <td colSpan={4}>No validated findings to summarise.</td>
                 </tr>
               )}
             </tbody>
