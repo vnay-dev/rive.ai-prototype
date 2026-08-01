@@ -1,7 +1,10 @@
 import writeXlsxFile, { type SheetData } from "write-excel-file/browser"
 
-import type { TagDecision } from "@/components/review/tag-accordion"
-import type { ReviewResult } from "@/lib/review"
+import {
+  occurrenceDecisionKey,
+  type ReviewResult,
+  type TagDecision,
+} from "@/lib/review"
 
 export type ReviewExportRow = {
   tag: string
@@ -23,19 +26,19 @@ export function buildReviewExportRows(
   decisions: Record<string, TagDecision>,
   fallbackDocument: string,
 ) {
-  const decisionByTag = new Map(
-    Object.entries(decisions).map(([tag, decision]) => [tag.trim().toUpperCase(), decision]),
-  )
-
   return review.flatMap<ReviewExportRow>((entry) => {
     const tag = entry.tag.trim()
-    const status = resolvedStatus(decisionByTag.get(tag.toUpperCase()))
-    if (!tag || !status) return []
+    if (!tag) return []
+
+    const document = entry.document?.trim() || fallbackDocument
+    const page = Math.max(1, Math.round(entry.page))
+    const status = resolvedStatus(decisions[occurrenceDecisionKey(tag, document, page)])
+    if (!status) return []
 
     return [{
       tag,
-      document: entry.document?.trim() || fallbackDocument,
-      page: Math.max(1, Math.round(entry.page)),
+      document,
+      page,
       occurrence: Math.max(1, Math.round(entry.occurrences ?? 1)),
       confidence: Math.round(entry.confidence * 100),
       status,

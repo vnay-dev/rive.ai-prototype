@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import type { TagDecision } from "@/components/review/tag-accordion"
+import type { TagDecision } from "@/lib/review"
 import { buildReviewDocuments } from "@/lib/extract-document-text"
 import { generateJobName, startReview } from "@/lib/openrouter"
 import {
@@ -8,15 +8,15 @@ import {
   createJobNameFromFile,
   getResolvedReviewProgress,
   loadWorkspace,
+  normalizeViewer,
   persistMeta,
   persistWorkspace,
   sortJobs,
-  type JobPhase,
+  type ReviewViewerTarget,
   type RuntimeReviewJob,
   type RuntimeUploadItem,
   type UploadItemKind,
 } from "@/lib/review-jobs"
-import type { ReviewResult, ReviewSource } from "@/lib/review"
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error"
 
@@ -141,22 +141,69 @@ export function useReviewJobs() {
       reviewRunId,
       errorMessage: null,
       completedAt: null,
+      extractedAt: null,
+      reviewStartedAt: null,
+      exportedAt: null,
       expandedTags: [],
       decisions: {},
       viewer: null,
+      extractionProgress: {
+        stage: "reading",
+        documentsTotal: items.length,
+        documentsProcessed: 0,
+        currentDocument: items[0]?.displayName ?? null,
+      },
       items,
     }))
 
+    const reviewingStartedAt = Date.now()
+
     try {
-      const payload = await buildReviewDocuments(items.map((item) => ({
-        displayName: item.displayName,
-        kind: item.kind,
-        byteSize: item.byteSize,
-        pageCount: item.pageCount,
-        files: item.files,
-      })))
+      const payload = await buildReviewDocuments(
+        items.map((item) => ({
+          displayName: item.displayName,
+          kind: item.kind,
+          byteSize: item.byteSize,
+          pageCount: item.pageCount,
+          files: item.files,
+        })),
+        (progress) => {
+          if (expectedReviewRunIdsRef.current.get(jobId) !== reviewRunId) return
+          updateJob(jobId, (entry) => ({
+            ...entry,
+            extractionProgress: {
+              stage: "reading",
+              documentsTotal: progress.documentsTotal,
+              documentsProcessed: progress.documentsProcessed,
+              currentDocument: progress.currentDocument,
+            },
+          }))
+        },
+      )
+
+      if (!jobsRef.current.some((entry) => entry.id === jobId)) return
+      if (expectedReviewRunIdsRef.current.get(jobId) !== reviewRunId) return
+
+      updateJob(jobId, (entry) => ({
+        ...entry,
+        extractionProgress: {
+          stage: "analyzing",
+          documentsTotal: payload.length,
+          documentsProcessed: payload.length,
+          currentDocument: null,
+        },
+      }))
 
       const response = await startReview(payload)
+      if (!jobsRef.current.some((entry) => entry.id === jobId)) return
+      if (expectedReviewRunIdsRef.current.get(jobId) !== reviewRunId) return
+
+      // Keep the extracting screen visible long enough to read when mock/API finishes instantly.
+      const minReviewingMs = 900
+      const elapsed = Date.now() - reviewingStartedAt
+      if (elapsed < minReviewingMs) {
+        await new Promise((resolve) => window.setTimeout(resolve, minReviewingMs - elapsed))
+      }
       if (!jobsRef.current.some((entry) => entry.id === jobId)) return
       if (expectedReviewRunIdsRef.current.get(jobId) !== reviewRunId) return
 
@@ -165,7 +212,9 @@ export function useReviewJobs() {
         phase: "results",
         review: response.data,
         reviewSource: response.source,
+        extractedAt: Date.now(),
         errorMessage: null,
+        extractionProgress: null,
         tags: [...new Set([...entry.tags, ...response.data.map((tag) => tag.tag)])],
       }))
     } catch (error: unknown) {
@@ -177,6 +226,7 @@ export function useReviewJobs() {
         phase: "upload",
         review: null,
         reviewSource: null,
+        extractionProgress: null,
         errorMessage: error instanceof Error ? error.message : "Review failed. Try again.",
       }))
     } finally {
@@ -263,13 +313,6 @@ export function useReviewJobs() {
     [jobs, activeJobId],
   )
 
-  const createJob = useCallback(() => {
-    const job = createEmptyJob(nextJobIdRef.current)
-    nextJobIdRef.current += 1
-    replaceJobs((current) => [...current, job], { activeJobId: job.id })
-    return job.id
-  }, [replaceJobs])
-
   const selectJob = useCallback((jobId: number) => {
     if (activeJobIdRef.current === jobId) return
 
@@ -280,6 +323,26 @@ export function useReviewJobs() {
       return touch({ ...job, items: finalizeUploadingItems(job.items) })
     }), { activeJobId: jobId })
   }, [replaceJobs])
+
+  const createJob = useCallback(() => {
+    const existingDraft = jobsRef.current.find((job) => (
+      job.phase === "upload"
+      && job.items.length === 0
+      && !job.review
+      && !job.errorMessage
+    ))
+    if (existingDraft) {
+      if (activeJobIdRef.current !== existingDraft.id) {
+        selectJob(existingDraft.id)
+      }
+      return existingDraft.id
+    }
+
+    const job = createEmptyJob(nextJobIdRef.current)
+    nextJobIdRef.current += 1
+    replaceJobs((current) => [...current, job], { activeJobId: job.id })
+    return job.id
+  }, [replaceJobs, selectJob])
 
   const renameJob = useCallback((jobId: number, name: string) => {
     const nextName = name.trim()
@@ -361,12 +424,15 @@ export function useReviewJobs() {
     const shouldSuggestName = Boolean(existing?.allowAutoName)
 
     updateJob(jobId, (job) => {
-      const shouldAutoName = job.allowAutoName && job.items.length === 0 && job.name === "Untitled review"
+      const shouldAutoName = job.allowAutoName
+        && job.items.length === 0
+        && (job.name === "Untitled review job" || job.name === "Untitled review")
       return {
         ...job,
         name: shouldAutoName ? createJobNameFromFile(entries[0].file) : job.name,
         items: [...job.items, ...created],
         fileNames: [...new Set([...job.fileNames, ...fileNames])],
+        uploadedAt: job.uploadedAt ?? Date.now(),
       }
     })
 
@@ -433,41 +499,27 @@ export function useReviewJobs() {
     void runReviewForJob(jobId)
   }, [runReviewForJob])
 
-  const backToUpload = useCallback((jobId: number) => {
-    updateJob(jobId, (job) => ({
-      ...job,
-      phase: "upload" as JobPhase,
-      review: null as ReviewResult | null,
-      reviewSource: null as ReviewSource | null,
-      errorMessage: null,
-      completedAt: null,
-      expandedTags: [],
-      decisions: {},
-      viewer: null,
-    }))
-  }, [updateJob])
-
   const toggleTag = useCallback((jobId: number, tag: string) => {
     updateJob(jobId, (job) => ({
       ...job,
+      reviewStartedAt: job.reviewStartedAt ?? Date.now(),
       expandedTags: job.expandedTags.includes(tag) ? [] : [tag],
     }))
   }, [updateJob])
 
-  const decideTag = useCallback((jobId: number, tag: string, decision: TagDecision) => {
+  const decideTag = useCallback((jobId: number, occurrenceKey: string, decision: TagDecision) => {
     updateJob(jobId, (job) => {
       const next = { ...job.decisions }
-      if (next[tag] === decision) {
-        delete next[tag]
+      if (next[occurrenceKey] === decision) {
+        delete next[occurrenceKey]
       } else {
-        next[tag] = decision
+        next[occurrenceKey] = decision
       }
       return {
         ...job,
         decisions: next,
         completedAt: null,
-        expandedTags: job.expandedTags.filter((entry) => entry !== tag),
-        viewer: job.viewer?.tag === tag ? null : job.viewer,
+        reviewStartedAt: job.reviewStartedAt ?? Date.now(),
       }
     })
   }, [updateJob])
@@ -476,15 +528,32 @@ export function useReviewJobs() {
     updateJob(jobId, (job) => {
       const { resolved, total } = getResolvedReviewProgress(job)
       if (total === 0 || resolved !== total) return job
-      return { ...job, completedAt: Date.now() }
+      return { ...job, completedAt: Date.now(), viewer: null }
+    })
+  }, [updateJob])
+
+  const markJobExported = useCallback((jobId: number) => {
+    updateJob(jobId, (job) => ({
+      ...job,
+      exportedAt: Date.now(),
+    }))
+  }, [updateJob])
+
+  const beginReview = useCallback((jobId: number) => {
+    updateJob(jobId, (job) => {
+      if (job.phase !== "results" || !job.review) return job
+      return {
+        ...job,
+        reviewStartedAt: job.reviewStartedAt ?? Date.now(),
+      }
     })
   }, [updateJob])
 
   const setViewer = useCallback((
     jobId: number,
-    viewer: { tag: string; documentName: string } | null,
+    viewer: ReviewViewerTarget | null,
   ) => {
-    updateJob(jobId, (job) => ({ ...job, viewer }))
+    updateJob(jobId, (job) => ({ ...job, viewer: normalizeViewer(viewer) }))
   }, [updateJob])
 
   // Keep meta.activeJobId warm even when jobs array is unchanged besides selection.
@@ -514,10 +583,11 @@ export function useReviewJobs() {
     patchUploadItem,
     removeUploadItem,
     startJobReview,
-    backToUpload,
     toggleTag,
     decideTag,
     markJobComplete,
+    markJobExported,
+    beginReview,
     setViewer,
   }
 }

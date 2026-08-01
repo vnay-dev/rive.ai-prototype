@@ -12,6 +12,8 @@ export type ReviewResult = ExtractedTag[]
 
 export type ReviewSource = "api" | "mock"
 
+export type TagDecision = "approved" | "rejected" | "needs-review"
+
 export type ReviewResponse = {
   source: ReviewSource
   data: ReviewResult
@@ -41,6 +43,44 @@ export type TagGroup = {
   confidence: number
   occurrences: number
   documents: TagGroupDocument[]
+}
+
+export type TagOccurrence = {
+  key: string
+  tag: string
+  documentName: string
+  page: number
+  confidence: number
+  occurrences: number
+}
+
+/** Stable key for per-occurrence decisions: TAG::document::page */
+export function occurrenceDecisionKey(tag: string, document: string, page: number) {
+  return `${tag.trim().toUpperCase()}::${document.trim()}::${Math.max(1, Math.round(page))}`
+}
+
+export function flattenTagOccurrences(
+  tags: ReviewResult,
+  fallbackDocument: string,
+): TagOccurrence[] {
+  const occurrences: TagOccurrence[] = []
+
+  for (const entry of tags) {
+    const tag = entry.tag.trim()
+    if (!tag) continue
+    const documentName = entry.document?.trim() || fallbackDocument
+    const page = Math.max(1, Math.round(entry.page))
+    occurrences.push({
+      key: occurrenceDecisionKey(tag, documentName, page),
+      tag,
+      documentName,
+      page,
+      confidence: entry.confidence,
+      occurrences: Math.max(1, Math.round(entry.occurrences ?? 1)),
+    })
+  }
+
+  return occurrences
 }
 
 export function isReviewResult(value: unknown): value is ReviewResult {

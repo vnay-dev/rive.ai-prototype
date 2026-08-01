@@ -14,9 +14,15 @@ type PdfViewerPanelProps = {
   tag: string
   documentName: string
   file: File | null
-  pages: number[]
+  page: number
+  matchIndex: number
+  matchTotal: number
+  canGoPrevious: boolean
+  canGoNext: boolean
   isClosing?: boolean
   onClose: () => void
+  onPreviousMatch: () => void
+  onNextMatch: () => void
 }
 
 type Highlight = {
@@ -59,32 +65,58 @@ function isCancelled(error: unknown) {
   return error instanceof Error && error.name === "RenderingCancelledException"
 }
 
-export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = false, onClose }: PdfViewerPanelProps) {
+export function PdfViewerPanel({
+  tag,
+  documentName,
+  file,
+  page,
+  matchIndex,
+  matchTotal,
+  canGoPrevious,
+  canGoNext,
+  isClosing = false,
+  onClose,
+  onPreviousMatch,
+  onNextMatch,
+}: PdfViewerPanelProps) {
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<RenderTask | null>(null)
+  const textItemsRef = useRef<PdfTextItems>([])
+  const viewportRef = useRef<PdfPageViewport | null>(null)
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null)
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
-  const [pageIndex, setPageIndex] = useState(0)
+  const [isPageRendering, setIsPageRendering] = useState(false)
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 })
   const [stageWidth, setStageWidth] = useState(0)
   const [highlights, setHighlights] = useState<Highlight[]>([])
 
-  const pageNumbers = pages.length > 0 ? pages : [1]
-  const currentPage = pageNumbers[Math.min(pageIndex, pageNumbers.length - 1)]
-
-  useEffect(() => {
-    setPageIndex(0)
-  }, [documentName, tag])
+  const currentPage = Math.max(1, page)
+  const showSkeleton = status === "loading" || isPageRendering
+  const skeletonWidth = pageSize.width > 0 ? pageSize.width : Math.max(stageWidth - 32, 240)
+  const skeletonHeight = pageSize.height > 0
+    ? pageSize.height
+    : Math.round(skeletonWidth * 1.28)
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose()
+      if (event.key === "Escape") {
+        onClose()
+        return
+      }
+      if (event.key === "ArrowLeft" && canGoPrevious) {
+        event.preventDefault()
+        onPreviousMatch()
+      }
+      if (event.key === "ArrowRight" && canGoNext) {
+        event.preventDefault()
+        onNextMatch()
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [onClose])
+  }, [canGoNext, canGoPrevious, onClose, onNextMatch, onPreviousMatch])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -106,13 +138,22 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
   useEffect(() => {
     if (!file) {
       setStatus("error")
+      setPdfDocument(null)
+      setIsPageRendering(false)
+      setHighlights([])
+      textItemsRef.current = []
+      viewportRef.current = null
       return
     }
 
     let cancelled = false
     let loadingTask: ReturnType<typeof getDocument> | null = null
     setStatus("loading")
+    setIsPageRendering(true)
     setPdfDocument(null)
+    setHighlights([])
+    textItemsRef.current = []
+    viewportRef.current = null
 
     void (async () => {
       try {
@@ -123,7 +164,10 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
         setPdfDocument(loaded)
         setStatus("ready")
       } catch {
-        if (!cancelled) setStatus("error")
+        if (!cancelled) {
+          setStatus("error")
+          setIsPageRendering(false)
+        }
       }
     })()
 
@@ -140,24 +184,29 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
 
     let cancelled = false
     const pageNumber = Math.min(Math.max(currentPage, 1), pdfDocument.numPages)
+    setIsPageRendering(true)
+    setHighlights([])
 
     void (async () => {
       try {
-        const page = await pdfDocument.getPage(pageNumber)
+        const pageProxy = await pdfDocument.getPage(pageNumber)
         if (cancelled) return
 
-        const unscaled = page.getViewport({ scale: 1 })
+        const unscaled = pageProxy.getViewport({ scale: 1 })
         const scale = Math.max(0.25, stageWidth / unscaled.width)
-        const viewport = page.getViewport({ scale })
+        const viewport = pageProxy.getViewport({ scale })
         const ratio = window.devicePixelRatio || 1
 
-        canvas.width = Math.floor(viewport.width * ratio)
-        canvas.height = Math.floor(viewport.height * ratio)
+        // Keep previous pixels visible under the skeleton until dimensions are applied.
+        const nextWidth = Math.floor(viewport.width * ratio)
+        const nextHeight = Math.floor(viewport.height * ratio)
         setPageSize({ width: viewport.width, height: viewport.height })
-        setHighlights([])
 
         renderTaskRef.current?.cancel()
-        const task = page.render({
+        canvas.width = nextWidth
+        canvas.height = nextHeight
+
+        const task = pageProxy.render({
           canvas,
           viewport,
           transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
@@ -166,18 +215,31 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
         await task.promise
         if (cancelled) return
 
-        const content = await page.getTextContent()
+        const content = await pageProxy.getTextContent()
         if (cancelled) return
+
+        textItemsRef.current = content.items
+        viewportRef.current = viewport
         setHighlights(findHighlights(content.items, viewport, tag))
+        setIsPageRendering(false)
       } catch (error) {
-        if (!cancelled && !isCancelled(error)) setStatus("error")
+        if (!cancelled && !isCancelled(error)) {
+          setStatus("error")
+          setIsPageRendering(false)
+        }
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [currentPage, pdfDocument, stageWidth, tag])
+  }, [currentPage, pdfDocument, stageWidth])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport || isPageRendering || status !== "ready") return
+    setHighlights(findHighlights(textItemsRef.current, viewport, tag))
+  }, [tag, isPageRendering, status])
 
   useEffect(() => {
     return () => renderTaskRef.current?.cancel()
@@ -191,7 +253,7 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
       <header className="pdf-viewer-header">
         <div className="pdf-viewer-heading">
           <p className="pdf-viewer-file" title={documentName}>{documentName}</p>
-          <p className="pdf-viewer-tag">{tag}</p>
+          <p className="pdf-viewer-tag">{tag} · Page {currentPage}</p>
         </div>
         <button aria-label="Close viewer" className="pdf-viewer-close" onClick={onClose} type="button">
           <X aria-hidden="true" size={16} strokeWidth={1.9} />
@@ -202,48 +264,56 @@ export function PdfViewerPanel({ tag, documentName, file, pages, isClosing = fal
         {status === "error" ? (
           <p className="pdf-viewer-note">Preview unavailable for this document.</p>
         ) : (
-          <>
-            {status === "loading" && <p className="pdf-viewer-note">Loading preview…</p>}
-            <div
-              className="pdf-viewer-page"
-              style={pageSize.width > 0 ? { width: pageSize.width, height: pageSize.height } : undefined}
-            >
-              <canvas className="pdf-viewer-canvas" ref={canvasRef} />
-              {highlights.map((highlight) => (
-                <span
-                  className="pdf-viewer-highlight"
-                  key={`${highlight.left}-${highlight.top}-${highlight.width}`}
-                  style={{
-                    left: highlight.left,
-                    top: highlight.top,
-                    width: highlight.width,
-                    height: highlight.height,
-                  }}
-                />
-              ))}
-            </div>
-          </>
+          <div
+            className={`pdf-viewer-page${showSkeleton ? " is-loading" : ""}`}
+            style={{ width: skeletonWidth, height: skeletonHeight }}
+          >
+            {showSkeleton && (
+              <div aria-hidden="true" className="pdf-viewer-skeleton" />
+            )}
+            <canvas
+              aria-hidden={showSkeleton}
+              className={`pdf-viewer-canvas${showSkeleton ? " is-pending" : ""}`}
+              ref={canvasRef}
+            />
+            {!showSkeleton && highlights.map((highlight) => (
+              <span
+                className="pdf-viewer-highlight"
+                key={`${highlight.left}-${highlight.top}-${highlight.width}`}
+                style={{
+                  left: highlight.left,
+                  top: highlight.top,
+                  width: highlight.width,
+                  height: highlight.height,
+                }}
+              />
+            ))}
+          </div>
         )}
       </div>
 
       <footer className="pdf-viewer-footer">
         <button
           className="pdf-viewer-nav"
-          disabled={pageIndex === 0}
-          onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
+          disabled={!canGoPrevious}
+          onClick={onPreviousMatch}
           type="button"
         >
           <ChevronLeft aria-hidden="true" size={15} strokeWidth={1.9} />
           Previous
         </button>
-        <span className="pdf-viewer-position">
-          <strong>{Math.min(pageIndex, pageNumbers.length - 1) + 1} / {pageNumbers.length}</strong>
-          <small>Page {currentPage}</small>
+        <span className="pdf-viewer-position" aria-live="polite">
+          <strong>
+            {matchTotal > 0
+              ? `${Math.min(matchIndex + 1, matchTotal)} of ${matchTotal}`
+              : "—"}
+          </strong>
+          <small>Occurrence · Page {currentPage}</small>
         </span>
         <button
           className="pdf-viewer-nav"
-          disabled={pageIndex >= pageNumbers.length - 1}
-          onClick={() => setPageIndex((index) => Math.min(pageNumbers.length - 1, index + 1))}
+          disabled={!canGoNext}
+          onClick={onNextMatch}
           type="button"
         >
           Next

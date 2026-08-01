@@ -1,11 +1,28 @@
-import type { TagDecision } from "@/components/review/tag-accordion"
-import type { ReviewResult, ReviewSource } from "@/lib/review"
+import {
+  occurrenceDecisionKey,
+  type ReviewResult,
+  type ReviewSource,
+  type TagDecision,
+} from "@/lib/review"
 
 export const REVIEW_JOBS_DB_NAME = "rive-review-jobs"
 export const REVIEW_JOBS_DB_VERSION = 1
 
 export type UploadItemKind = "file" | "folder" | "zip"
 export type JobPhase = "upload" | "reviewing" | "results"
+
+export type ReviewViewerTarget = {
+  tag: string
+  documentName: string
+  page: number
+}
+
+export type ExtractionProgress = {
+  stage: "reading" | "analyzing"
+  documentsTotal: number
+  documentsProcessed: number
+  currentDocument: string | null
+}
 
 export type StoredFileBlob = {
   name: string
@@ -38,9 +55,13 @@ export type PersistedReviewJob = {
   reviewRunId: number
   errorMessage: string | null
   completedAt: number | null
+  uploadedAt: number | null
+  extractedAt: number | null
+  reviewStartedAt: number | null
+  exportedAt: number | null
   expandedTags: string[]
   decisions: Record<string, TagDecision>
-  viewer: { tag: string; documentName: string } | null
+  viewer: ReviewViewerTarget | null
   fileNames: string[]
   fileContent: string[]
   tags: string[]
@@ -78,9 +99,15 @@ export type RuntimeReviewJob = {
   reviewRunId: number
   errorMessage: string | null
   completedAt: number | null
+  uploadedAt: number | null
+  extractedAt: number | null
+  reviewStartedAt: number | null
+  exportedAt: number | null
   expandedTags: string[]
   decisions: Record<string, TagDecision>
-  viewer: { tag: string; documentName: string } | null
+  viewer: ReviewViewerTarget | null
+  /** Ephemeral extraction progress; not persisted. */
+  extractionProgress: ExtractionProgress | null
   fileNames: string[]
   fileContent: string[]
   tags: string[]
@@ -201,9 +228,13 @@ export function runtimeJobToPersisted(job: RuntimeReviewJob): PersistedReviewJob
     reviewRunId: job.reviewRunId,
     errorMessage: job.errorMessage,
     completedAt: job.completedAt,
+    uploadedAt: job.uploadedAt,
+    extractedAt: job.extractedAt,
+    reviewStartedAt: job.reviewStartedAt,
+    exportedAt: job.exportedAt,
     expandedTags: job.expandedTags,
     decisions: job.decisions,
-    viewer: job.viewer,
+    viewer: normalizeViewer(job.viewer),
     fileNames: job.fileNames,
     fileContent: job.fileContent,
     tags: job.tags,
@@ -213,9 +244,10 @@ export function runtimeJobToPersisted(job: RuntimeReviewJob): PersistedReviewJob
 }
 
 export function persistedJobToRuntime(job: PersistedReviewJob): RuntimeReviewJob {
+  const legacyUntitled = job.name === "Untitled review"
   return {
     id: job.id,
-    name: job.name,
+    name: legacyUntitled ? "Untitled review job" : job.name,
     pinned: job.pinned,
     allowAutoName: job.allowAutoName,
     phase: job.phase,
@@ -225,9 +257,14 @@ export function persistedJobToRuntime(job: PersistedReviewJob): RuntimeReviewJob
     reviewRunId: job.reviewRunId,
     errorMessage: job.errorMessage ?? null,
     completedAt: job.completedAt ?? null,
+    uploadedAt: job.uploadedAt ?? (job.items.length > 0 ? job.createdAt : null),
+    extractedAt: job.extractedAt ?? null,
+    reviewStartedAt: job.reviewStartedAt ?? null,
+    exportedAt: job.exportedAt ?? null,
     expandedTags: job.expandedTags,
     decisions: job.decisions,
-    viewer: job.viewer,
+    viewer: normalizeViewer(job.viewer),
+    extractionProgress: null,
     fileNames: job.fileNames,
     fileContent: job.fileContent,
     tags: job.tags,
@@ -236,7 +273,21 @@ export function persistedJobToRuntime(job: PersistedReviewJob): RuntimeReviewJob
   }
 }
 
-export function createEmptyJob(id: number, name = "Untitled review"): RuntimeReviewJob {
+export function normalizeViewer(
+  viewer: { tag: string; documentName: string; page?: number } | null | undefined,
+): ReviewViewerTarget | null {
+  if (!viewer?.tag || !viewer.documentName) return null
+  const page = typeof viewer.page === "number" && Number.isFinite(viewer.page)
+    ? Math.max(1, Math.round(viewer.page))
+    : 1
+  return {
+    tag: viewer.tag,
+    documentName: viewer.documentName,
+    page,
+  }
+}
+
+export function createEmptyJob(id: number, name = "Untitled review job"): RuntimeReviewJob {
   const now = Date.now()
   return {
     id,
@@ -250,9 +301,14 @@ export function createEmptyJob(id: number, name = "Untitled review"): RuntimeRev
     reviewRunId: 0,
     errorMessage: null,
     completedAt: null,
+    uploadedAt: null,
+    extractedAt: null,
+    reviewStartedAt: null,
+    exportedAt: null,
     expandedTags: [],
     decisions: {},
     viewer: null,
+    extractionProgress: null,
     fileNames: [],
     fileContent: [],
     tags: [],
@@ -268,24 +324,21 @@ export function isResolvedTagDecision(decision: TagDecision | undefined) {
 
 export function getResolvedReviewProgress(
   job: Pick<RuntimeReviewJob, "review" | "decisions">,
+  fallbackDocument = "Uploaded document",
 ) {
-  const tagKeys = new Map<string, string>()
+  const occurrenceKeys = new Set<string>()
   for (const entry of job.review ?? []) {
     const tag = entry.tag.trim()
     if (!tag) continue
-    const key = tag.toUpperCase()
-    if (!tagKeys.has(key)) tagKeys.set(key, tag)
+    const document = entry.document?.trim() || fallbackDocument
+    occurrenceKeys.add(occurrenceDecisionKey(tag, document, entry.page))
   }
 
-  const decisionByKey = new Map(
-    Object.entries(job.decisions).map(([tag, decision]) => [tag.trim().toUpperCase(), decision]),
-  )
-
-  const resolved = [...tagKeys.keys()].filter((key) => (
-    isResolvedTagDecision(decisionByKey.get(key))
+  const resolved = [...occurrenceKeys].filter((key) => (
+    isResolvedTagDecision(job.decisions[key])
   )).length
 
-  return { resolved, total: tagKeys.size }
+  return { resolved, total: occurrenceKeys.size }
 }
 
 export function getJobSidebarStatus(job: RuntimeReviewJob): JobSidebarStatus {
@@ -310,6 +363,124 @@ export function jobSidebarStatusLabel(status: JobSidebarStatus) {
   return "Draft"
 }
 
+/** Human-readable status for the job details dialog. */
+export function getJobDetailsStatusLabel(job: RuntimeReviewJob) {
+  const status = getJobSidebarStatus(job)
+  if (status === "processing") return "Processing"
+  if (status === "error") return "Failed"
+  if (status === "ready") return "In Review"
+  if (status === "completed") return "Completed"
+  return "Draft"
+}
+
+export type JobHistoryEvent = {
+  label: string
+  at: number
+}
+
+export function formatJobTimestamp(value: number) {
+  const date = new Date(value)
+  const datePart = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+  const timePart = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+  return `${datePart} • ${timePart}`
+}
+
+export function getJobExtractedTagCount(job: RuntimeReviewJob) {
+  if (!job.review?.length) return 0
+  return new Set(
+    job.review
+      .map((entry) => entry.tag.trim().toUpperCase())
+      .filter(Boolean),
+  ).size
+}
+
+export function hasStartedReview(job: Pick<RuntimeReviewJob, "reviewStartedAt" | "decisions">) {
+  return job.reviewStartedAt != null || Object.keys(job.decisions).length > 0
+}
+
+export function getExtractionSummary(
+  review: ReviewResult,
+  fallbackDocument = "Uploaded document",
+) {
+  const documents = new Set<string>()
+  const tags = new Set<string>()
+  let occurrences = 0
+  let matchHits = 0
+
+  for (const entry of review) {
+    const tag = entry.tag.trim()
+    if (!tag) continue
+    tags.add(tag.toUpperCase())
+    documents.add(entry.document?.trim() || fallbackDocument)
+    occurrences += 1
+    matchHits += Math.max(1, Math.round(entry.occurrences ?? 1))
+  }
+
+  return {
+    documents: documents.size,
+    tags: tags.size,
+    occurrences,
+    matchHits,
+  }
+}
+
+/** Timeline entries that have actually happened for this job. */
+export function buildJobHistoryEvents(job: RuntimeReviewJob): JobHistoryEvent[] {
+  const events: JobHistoryEvent[] = [
+    { label: "Review job created", at: job.createdAt },
+  ]
+
+  if (job.uploadedAt != null || job.items.length > 0) {
+    events.push({
+      label: "Documents uploaded",
+      at: job.uploadedAt ?? job.createdAt,
+    })
+  }
+
+  if (job.extractedAt != null || job.review) {
+    events.push({
+      label: "AI extraction completed",
+      at: job.extractedAt ?? job.completedAt ?? job.updatedAt,
+    })
+  }
+
+  if (job.reviewStartedAt != null || Object.keys(job.decisions).length > 0) {
+    events.push({
+      label: "Review started",
+      at: job.reviewStartedAt
+        ?? job.extractedAt
+        ?? job.completedAt
+        ?? job.updatedAt,
+    })
+  }
+
+  if (job.completedAt != null) {
+    events.push({ label: "Review completed", at: job.completedAt })
+  }
+
+  if (job.exportedAt != null) {
+    events.push({ label: "Results exported", at: job.exportedAt })
+  }
+
+  const order = [
+    "Review job created",
+    "Documents uploaded",
+    "AI extraction completed",
+    "Review started",
+    "Review completed",
+    "Results exported",
+  ]
+
+  return events.sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label))
+}
+
 export function createJobNameFromFile(file: File) {
   const sourceName = file.webkitRelativePath
     ? file.webkitRelativePath.split("/")[0]
@@ -320,8 +491,16 @@ export function createJobNameFromFile(file: File) {
     .replace(/\s+/g, " ")
     .trim()
 
-  if (!readableName) return "Untitled review"
+  if (!readableName) return "Untitled review job"
   return readableName.charAt(0).toUpperCase() + readableName.slice(1)
+}
+
+/** Empty upload drafts stay off the sidebar until the first document is added. */
+export function isListedReviewJob(job: RuntimeReviewJob) {
+  if (job.items.length > 0) return true
+  if (job.phase === "reviewing" || job.phase === "results") return true
+  if (job.errorMessage) return true
+  return false
 }
 
 export function sortJobs(jobs: RuntimeReviewJob[]) {

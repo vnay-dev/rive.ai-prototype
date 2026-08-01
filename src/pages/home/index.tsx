@@ -1,21 +1,28 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
-import { Check, ChevronLeft, Circle, CircleAlert, LoaderCircle, Search, Trash2, Upload } from "lucide-react"
+import { Check, Circle, CircleAlert, FileText, LoaderCircle, Search, Trash2, Upload } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { GridLayout } from "@/components/layout/grid-layout"
 import { ExportSummaryDialog } from "@/components/review/export-summary-dialog"
+import { ExtractionSummaryPanel } from "@/components/review/extraction-summary-panel"
+import { JobHistoryDialog } from "@/components/review/job-history-dialog"
 import { PdfViewerPanel } from "@/components/review/pdf-viewer-panel"
 import { ProcessingStatus } from "@/components/review/processing-status"
-import { TagAccordion, type TagDecision } from "@/components/review/tag-accordion"
+import { ReviewSummaryPanel } from "@/components/review/review-summary-panel"
+import { TagReviewPanel, type TagDecision, type TagReviewVariant } from "@/components/review/tag-review-panel"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useReviewJobs, type NewUploadEntry } from "@/hooks/use-review-jobs"
 import { buildReviewExportRows } from "@/lib/export-review"
-import { groupExtractedTags } from "@/lib/review"
+import { flattenTagOccurrences, groupExtractedTags } from "@/lib/review"
 import {
+  getExtractionSummary,
   getJobSidebarStatus,
   getResolvedReviewProgress,
+  hasStartedReview,
+  isListedReviewJob,
   jobSidebarStatusLabel,
   type JobSidebarStatus,
+  type ReviewViewerTarget,
   type RuntimeReviewJob,
   type RuntimeUploadItem,
   type UploadItemKind,
@@ -58,6 +65,8 @@ function Sidebar({
   onPinJob,
   onDeleteJob,
 }: SidebarProps) {
+  const listedJobs = jobs.filter(isListedReviewJob)
+
   return (
     <div className="sidebar-content">
       <a className="brand" href="/">
@@ -68,18 +77,18 @@ function Sidebar({
         <span aria-hidden="true">+</span>
         New review job
       </button>
-      {jobs.length > 0 && (
+      {listedJobs.length > 0 && (
         <button className="nav-link nav-link-secondary" onClick={onSearchReviewJobs} type="button">
           <Search aria-hidden="true" size={15} strokeWidth={2} />
           Search review jobs
         </button>
       )}
 
-      {jobs.length > 0 && (
+      {listedJobs.length > 0 && (
         <div className="sidebar-section">
           <p className="sidebar-label">Review jobs</p>
           <div className="sidebar-job-list">
-            {jobs.map((job) => (
+            {listedJobs.map((job) => (
               <SidebarJob
                 isActive={job.id === activeJobId}
                 job={job}
@@ -106,7 +115,11 @@ function Sidebar({
 }
 function SidebarJobStatusIcon({ status, title }: { status: JobSidebarStatus; title?: string }) {
   if (status === "idle") {
-    return <span aria-hidden="true" className="sidebar-job-icon is-empty" />
+    return (
+      <span aria-label={title} className="sidebar-job-icon is-draft" title={title}>
+        <FileText aria-hidden="true" size={14} strokeWidth={2.2} />
+      </span>
+    )
   }
 
   if (status === "processing") {
@@ -154,6 +167,7 @@ function SidebarJob({ job, isActive, onSelect, onRename, onPin, onDelete }: Side
   const [isEditing, setIsEditing] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
   const [draftName, setDraftName] = useState(job.name)
   const status = getJobSidebarStatus(job)
   const statusLabel = jobSidebarStatusLabel(status)
@@ -266,6 +280,17 @@ function SidebarJob({ job, isActive, onSelect, onRename, onPin, onDelete }: Side
                     {job.pinned ? "Unpin" : "Pin"}
                   </button>
                   <button
+                    className="sidebar-job-menu-item"
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      setIsHistoryOpen(true)
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    View history
+                  </button>
+                  <button
                     className="sidebar-job-menu-item is-danger"
                     onClick={() => {
                       setIsMenuOpen(false)
@@ -302,6 +327,10 @@ function SidebarJob({ job, isActive, onSelect, onRename, onPin, onDelete }: Side
           title="Delete review job?"
         />
       )}
+
+      {isHistoryOpen && (
+        <JobHistoryDialog job={job} onClose={() => setIsHistoryOpen(false)} />
+      )}
     </>
   )
 }
@@ -315,11 +344,12 @@ type UploadViewProps = {
   ) => void
   onRemoveUploadItem: (itemId: string) => void
   onStartReview: () => void
-  onBackToUpload: () => void
   onMarkComplete: () => void
-  onToggleTag: (tag: string) => void
-  onDecideTag: (tag: string, decision: TagDecision) => void
-  onSetViewer: (viewer: { tag: string; documentName: string } | null) => void
+  onMarkExported: () => void
+  onBeginReview: () => void
+  onDecideTag: (occurrenceKey: string, decision: TagDecision) => void
+  onSetViewer: (viewer: ReviewViewerTarget | null) => void
+  variant: TagReviewVariant
 }
 
 function UploadView({
@@ -328,11 +358,12 @@ function UploadView({
   onPatchUploadItem,
   onRemoveUploadItem,
   onStartReview,
-  onBackToUpload,
   onMarkComplete,
-  onToggleTag,
+  onMarkExported,
+  onBeginReview,
   onDecideTag,
   onSetViewer,
+  variant,
 }: UploadViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
@@ -359,18 +390,60 @@ function UploadView({
   )
 
   const reviewProgress = useMemo(
-    () => getResolvedReviewProgress(job),
-    [job],
+    () => getResolvedReviewProgress(job, fallbackDocumentName),
+    [job, fallbackDocumentName],
   )
   const reviewProgressPercent = reviewProgress.total === 0
     ? 0
     : Math.round((reviewProgress.resolved / reviewProgress.total) * 100)
   const canMarkComplete = reviewProgress.total > 0
     && reviewProgress.resolved === reviewProgress.total
+  const isReviewComplete = Boolean(job.completedAt)
+  const showExtractionSummary = job.phase === "results"
+    && Boolean(job.review)
+    && !isReviewComplete
+    && !hasStartedReview(job)
+  const extractionSummary = useMemo(
+    () => (job.review ? getExtractionSummary(job.review, fallbackDocumentName) : null),
+    [job.review, fallbackDocumentName],
+  )
+  const allOccurrences = useMemo(
+    () => (job.review ? flattenTagOccurrences(job.review, fallbackDocumentName) : []),
+    [job.review, fallbackDocumentName],
+  )
   const exportRows = useMemo(
     () => buildReviewExportRows(job.review ?? [], job.decisions, fallbackDocumentName),
     [job.review, job.decisions, fallbackDocumentName],
   )
+  const pageTitle = job.phase === "reviewing"
+    ? "Extracting tags"
+    : job.phase === "results"
+      ? (isReviewComplete
+        ? "Review summary"
+        : showExtractionSummary
+          ? "Tag extraction complete"
+          : "Review results")
+      : "Upload documents"
+  const pageSubtitle = job.phase === "reviewing"
+    ? "Identifying engineering tags and organizing them for review."
+    : job.phase === "results"
+      ? (isReviewComplete ? (
+        <>
+          Review complete for{" "}
+          <span className="page-subtitle-emphasis">
+            {tagGroups.length} {tagGroups.length === 1 ? "engineering tag" : "engineering tags"}
+          </span>
+          . Export validated results when you&apos;re ready.
+        </>
+      ) : showExtractionSummary ? null : (
+        <>
+          <span className="page-subtitle-emphasis">
+            {tagGroups.length} {tagGroups.length === 1 ? "engineering tag" : "engineering tags"}
+          </span>
+          {" "}identified and ready for review.
+        </>
+      ))
+      : "Turn engineering drawings into trusted, searchable data with AI-assisted tag extraction and review."
 
   // Keep the viewer mounted through its closing animation, whether it was dismissed
   // directly or cleared by a tag decision.
@@ -394,6 +467,28 @@ function UploadView({
       .find((group) => group.tag === mountedViewer.tag)
       ?.documents.find((document) => document.name === mountedViewer.documentName)
     : undefined
+
+  const tagOccurrences = useMemo(() => {
+    if (!mountedViewer) return []
+    return allOccurrences.filter((occurrence) => occurrence.tag === mountedViewer.tag)
+  }, [allOccurrences, mountedViewer])
+
+  const viewerMatchIndex = mountedViewer
+    ? tagOccurrences.findIndex((occurrence) => (
+      occurrence.documentName === mountedViewer.documentName
+      && occurrence.page === mountedViewer.page
+    ))
+    : -1
+
+  function goToTagOccurrence(index: number) {
+    const occurrence = tagOccurrences[index]
+    if (!occurrence) return
+    onSetViewer({
+      tag: occurrence.tag,
+      documentName: occurrence.documentName,
+      page: occurrence.page,
+    })
+  }
 
   useEffect(() => {
     const timers = uploadTimersRef.current
@@ -608,66 +703,51 @@ function UploadView({
   return (
     <>
       <header className="page-header">
-        {job.phase === "results" && (
-          <button className="page-back-link" onClick={onBackToUpload} type="button">
-            <ChevronLeft aria-hidden="true" size={14} strokeWidth={2.2} />
-            Back to upload
-          </button>
-        )}
         <div className="page-header-main">
           <div className="page-header-titles">
-            <h2>{job.phase === "results" ? "Review results" : "Upload documents"}</h2>
-            <p className="page-subtitle">
-              {job.phase === "results" ? (
-                <>
-                  <span className="page-subtitle-emphasis">
-                    {tagGroups.length} {tagGroups.length === 1 ? "engineering tag" : "engineering tags"} 
-                  </span>
-                  {" "}identified and ready for review.
-                </>
-              ) : (
-                "Turn engineering drawings into trusted, searchable data with AI-assisted tag extraction and review."
-              )}
-            </p>
+            <h2>{pageTitle}</h2>
+            {pageSubtitle && <p className="page-subtitle">{pageSubtitle}</p>}
           </div>
-          {job.phase === "results" ? (
+          {job.phase === "results" && !showExtractionSummary ? (
             <div className="page-header-actions">
-              <div className="review-complete-control">
+              {isReviewComplete ? (
                 <button
-                  aria-label={`Mark as complete — ${reviewProgress.resolved} of ${reviewProgress.total} tags reviewed`}
-                  className={`primary-button review-complete-button ${
-                    job.completedAt ? "is-complete" : canMarkComplete ? "is-ready" : "is-pending"
-                  }`}
-                  disabled={!canMarkComplete || Boolean(job.completedAt)}
-                  onClick={onMarkComplete}
-                  type="button"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="review-complete-fill"
-                    style={{ width: `${reviewProgressPercent}%` }}
-                  />
-                  <span className="review-complete-label">
-                    {(canMarkComplete || job.completedAt) && (
-                      <Check aria-hidden="true" size={15} strokeWidth={2.4} />
-                    )}
-                    {job.completedAt ? "Completed" : "Mark as complete"}
-                    {!canMarkComplete && reviewProgress.total > 0 && (
-                      <span className="review-complete-fraction">
-                        {reviewProgress.resolved}/{reviewProgress.total}
-                      </span>
-                    )}
-                  </span>
-                </button>
-                <button
-                  className="secondary-button"
-                  disabled={!job.completedAt}
+                  className="primary-button"
                   onClick={() => setIsExportSummaryOpen(true)}
                   type="button"
                 >
-                  Export as Excel
+                  Export results
                 </button>
-              </div>
+              ) : (
+                <div className="review-complete-control">
+                  <button
+                    aria-label={`Mark as complete — ${reviewProgress.resolved} of ${reviewProgress.total} occurrences reviewed`}
+                    className={`primary-button review-complete-button ${
+                      canMarkComplete ? "is-ready" : "is-pending"
+                    }`}
+                    disabled={!canMarkComplete}
+                    onClick={onMarkComplete}
+                    type="button"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="review-complete-fill"
+                      style={{ width: `${reviewProgressPercent}%` }}
+                    />
+                    <span className="review-complete-label">
+                      {canMarkComplete && (
+                        <Check aria-hidden="true" size={15} strokeWidth={2.4} />
+                      )}
+                      Mark as complete
+                      {!canMarkComplete && reviewProgress.total > 0 && (
+                        <span className="review-complete-fraction">
+                          {reviewProgress.resolved}/{reviewProgress.total}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           ) : job.phase === "upload" && job.items.length > 0 ? (
             <button
@@ -683,17 +763,28 @@ function UploadView({
       </header>
 
       {job.phase === "reviewing" ? (
-        <ProcessingStatus />
+        <ProcessingStatus progress={job.extractionProgress} />
+      ) : job.phase === "results" && job.review && isReviewComplete ? (
+        <ReviewSummaryPanel rows={exportRows} tagGroups={tagGroups} />
+      ) : job.phase === "results" && job.review && showExtractionSummary && extractionSummary ? (
+        <ExtractionSummaryPanel
+          documents={extractionSummary.documents}
+          matchHits={extractionSummary.matchHits}
+          occurrences={extractionSummary.occurrences}
+          onStartReview={onBeginReview}
+          tags={extractionSummary.tags}
+        />
       ) : job.phase === "results" && job.review ? (
         <section className="review-results" aria-label="Review results">
-          <TagAccordion
+          <TagReviewPanel
             activeOccurrence={job.viewer}
             decisions={job.decisions}
-            expandedTags={job.expandedTags}
+            fallbackDocument={fallbackDocumentName}
             groups={tagGroups}
             onDecide={onDecideTag}
-            onToggle={onToggleTag}
-            onViewOccurrence={(tag, documentName) => onSetViewer({ tag, documentName })}
+            onViewOccurrence={onSetViewer}
+            review={job.review}
+            variant={variant}
           />
         </section>
       ) : job.items.length === 0 ? (
@@ -742,7 +833,7 @@ function UploadView({
         </section>
       )}
 
-      {job.phase !== "results" && (
+      {job.phase === "upload" && (
         <div
           aria-label="Add documents"
           className={`upload-bar${isDragging ? " is-dragging" : ""}`}
@@ -796,11 +887,17 @@ function UploadView({
 
       {mountedViewer && viewerDocument && (
         <PdfViewerPanel
+          canGoNext={tagOccurrences.length > 0 && viewerMatchIndex < tagOccurrences.length - 1}
+          canGoPrevious={viewerMatchIndex > 0}
           documentName={viewerDocument.name}
           file={findDocumentFile(job.items, viewerDocument.name)}
           isClosing={isViewerClosing}
+          matchIndex={Math.max(viewerMatchIndex, 0)}
+          matchTotal={tagOccurrences.length}
           onClose={() => onSetViewer(null)}
-          pages={viewerDocument.pages}
+          onNextMatch={() => goToTagOccurrence(Math.max(viewerMatchIndex, -1) + 1)}
+          onPreviousMatch={() => goToTagOccurrence(viewerMatchIndex - 1)}
+          page={mountedViewer.page}
           tag={mountedViewer.tag}
         />
       )}
@@ -825,12 +922,22 @@ function UploadView({
         <ExportSummaryDialog
           jobName={job.name}
           onClose={() => setIsExportSummaryOpen(false)}
+          onExported={onMarkExported}
           rows={exportRows}
         />
       )}
     </>
   )
 }
+
+const JOB_STATUS_FILTERS: Array<{ id: "all" | JobSidebarStatus; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "ready", label: "Ready" },
+  { id: "completed", label: "Completed" },
+  { id: "processing", label: "Processing" },
+  { id: "error", label: "Failed" },
+  { id: "idle", label: "Draft" },
+]
 
 function SearchReviewJobs({
   jobs,
@@ -840,17 +947,38 @@ function SearchReviewJobs({
   onSelectJob: (id: number) => void
 }) {
   const [query, setQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | JobSidebarStatus>("all")
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const matchingJobs = useMemo(() => {
-    if (!normalizedQuery) return jobs
+    const listed = jobs.filter(isListedReviewJob)
+    return listed.filter((job) => {
+      const status = getJobSidebarStatus(job)
+      if (statusFilter !== "all" && status !== statusFilter) return false
+      if (!normalizedQuery) return true
+      return [
+        job.name,
+        ...job.fileNames,
+        ...job.fileContent,
+        ...job.tags,
+      ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
+    })
+  }, [jobs, normalizedQuery, statusFilter])
 
-    return jobs.filter((job) => [
-      job.name,
-      ...job.fileNames,
-      ...job.fileContent,
-      ...job.tags,
-    ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery)))
-  }, [jobs, normalizedQuery])
+  const statusCounts = useMemo(() => {
+    const listed = jobs.filter(isListedReviewJob)
+    const counts: Record<"all" | JobSidebarStatus, number> = {
+      all: listed.length,
+      idle: 0,
+      processing: 0,
+      error: 0,
+      ready: 0,
+      completed: 0,
+    }
+    for (const job of listed) {
+      counts[getJobSidebarStatus(job)] += 1
+    }
+    return counts
+  }, [jobs])
 
   return (
     <>
@@ -858,7 +986,7 @@ function SearchReviewJobs({
         <div className="page-header-main">
           <div className="page-header-titles">
             <h2>Search review jobs</h2>
-            <p className="page-subtitle">Find a job by its title, files, document content, or tags.</p>
+            <p className="page-subtitle">Find and filter jobs by title, files, content, tags, or status.</p>
           </div>
         </div>
       </header>
@@ -873,6 +1001,24 @@ function SearchReviewJobs({
             type="search"
             value={query}
           />
+        </div>
+        <div className="job-status-filters" aria-label="Filter by status" role="toolbar">
+          {JOB_STATUS_FILTERS.map((filter) => {
+            const count = statusCounts[filter.id]
+            if (filter.id !== "all" && count === 0) return null
+            return (
+              <button
+                aria-pressed={statusFilter === filter.id}
+                className={`job-status-filter${statusFilter === filter.id ? " is-active" : ""}`}
+                key={filter.id}
+                onClick={() => setStatusFilter(filter.id)}
+                type="button"
+              >
+                {filter.label}
+                <span className="job-status-filter-count">{count}</span>
+              </button>
+            )
+          })}
         </div>
         <p className="job-search-count" aria-live="polite">
           {matchingJobs.length} {matchingJobs.length === 1 ? "review job" : "review jobs"}
@@ -908,7 +1054,7 @@ function SearchReviewJobs({
         ) : (
           <div className="job-search-empty">
             <strong>No review jobs found</strong>
-            <span>Try another title, file name, phrase, or tag.</span>
+            <span>Try another title, file name, phrase, tag, or status filter.</span>
           </div>
         )}
       </section>
@@ -1000,7 +1146,7 @@ async function resolvePageCount(files: File[]) {
   return counts.reduce((total, count) => total + count, 0)
 }
 
-export function HomePage() {
+export function ReviewWorkspacePage({ variant }: { variant: TagReviewVariant }) {
   const {
     jobs,
     activeJob,
@@ -1015,10 +1161,10 @@ export function HomePage() {
     patchUploadItem,
     removeUploadItem,
     startJobReview,
-    backToUpload,
-    toggleTag,
     decideTag,
     markJobComplete,
+    markJobExported,
+    beginReview,
     setViewer,
   } = useReviewJobs()
 
@@ -1062,14 +1208,15 @@ export function HomePage() {
             key={activeJob.id}
             job={activeJob}
             onAddUploads={(entries) => addUploads(activeJob.id, entries)}
-            onBackToUpload={() => backToUpload(activeJob.id)}
-            onDecideTag={(tag, decision) => decideTag(activeJob.id, tag, decision)}
+            onBeginReview={() => beginReview(activeJob.id)}
+            onDecideTag={(occurrenceKey, decision) => decideTag(activeJob.id, occurrenceKey, decision)}
             onMarkComplete={() => markJobComplete(activeJob.id)}
+            onMarkExported={() => markJobExported(activeJob.id)}
             onPatchUploadItem={(itemId, patch) => patchUploadItem(activeJob.id, itemId, patch)}
             onRemoveUploadItem={(itemId) => removeUploadItem(activeJob.id, itemId)}
             onSetViewer={(viewer) => setViewer(activeJob.id, viewer)}
             onStartReview={() => startJobReview(activeJob.id)}
-            onToggleTag={(tag) => toggleTag(activeJob.id, tag)}
+            variant={variant}
           />
         )}
       </GridLayout>

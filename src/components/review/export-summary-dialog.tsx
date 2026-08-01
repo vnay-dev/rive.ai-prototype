@@ -10,21 +10,26 @@ type ExportSummaryDialogProps = {
   jobName: string
   rows: ReviewExportRow[]
   onClose: () => void
+  onExported?: () => void
 }
 
 export function ExportSummaryDialog({
   jobName,
   rows,
   onClose,
+  onExported,
 }: ExportSummaryDialogProps) {
   const titleId = useId()
+  const descriptionId = useId()
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const summary = useMemo(() => {
     const approved = rows.filter((row) => row.status === "Approved").length
-    const documents = new Set(rows.map((row) => row.document)).size
-    const tags = new Set(rows.map((row) => row.tag.toUpperCase())).size
-    return { approved, rejected: rows.length - approved, documents, tags }
+    return {
+      approved,
+      rejected: rows.length - approved,
+      tags: new Set(rows.map((row) => row.tag.toUpperCase())).size,
+    }
   }, [rows])
 
   useEffect(() => {
@@ -40,6 +45,8 @@ export function ExportSummaryDialog({
     setDownloadError(null)
     try {
       await downloadReviewWorkbook(jobName, rows)
+      onExported?.()
+      onClose()
     } catch (error) {
       setDownloadError(error instanceof Error ? error.message : "Unable to create the Excel file.")
     } finally {
@@ -50,18 +57,21 @@ export function ExportSummaryDialog({
   return createPortal(
     <div className="confirm-dialog-scrim export-summary-scrim" role="presentation">
       <div
+        aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
-        className="export-summary-dialog"
+        className="export-results-dialog"
         role="dialog"
       >
-        <header className="export-summary-header">
+        <header className="export-results-header">
           <div>
-            <h2 id={titleId}>Export summary</h2>
-            <p>Preview the completed findings before downloading the Excel file.</p>
+            <h2 id={titleId}>Export results</h2>
+            <p id={descriptionId}>
+              Download an Excel workbook with the validated findings from this review.
+            </p>
           </div>
           <button
-            aria-label="Close export summary"
+            aria-label="Close export dialog"
             className="export-summary-close"
             disabled={isDownloading}
             onClick={onClose}
@@ -71,43 +81,17 @@ export function ExportSummaryDialog({
           </button>
         </header>
 
-        <div className="export-summary-stats" aria-label="Review summary">
-          <span><strong>{summary.tags}</strong> Tags</span>
-          <span><strong>{summary.documents}</strong> Documents</span>
-          <span><strong>{summary.approved}</strong> Approved</span>
-          <span><strong>{summary.rejected}</strong> Rejected</span>
-        </div>
+        <p className="export-results-meta" aria-label="Export contents">
+          <span>{summary.tags} {summary.tags === 1 ? "tag" : "tags"}</span>
+          <span aria-hidden="true">·</span>
+          <span>{summary.approved} approved</span>
+          <span aria-hidden="true">·</span>
+          <span>{summary.rejected} rejected</span>
+        </p>
 
-        <div className="export-summary-table-wrap">
-          <table className="export-summary-table">
-            <thead>
-              <tr>
-                <th>Tag</th>
-                <th>Document</th>
-                <th>Page</th>
-                <th>Occurrence</th>
-                <th>Confidence</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => (
-                <tr key={`${row.tag}-${row.document}-${row.page}-${index}`}>
-                  <td>{row.tag}</td>
-                  <td>{row.document}</td>
-                  <td>{row.page}</td>
-                  <td>{row.occurrence}</td>
-                  <td>{row.confidence}%</td>
-                  <td>{row.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {downloadError && <p className="export-results-error" role="alert">{downloadError}</p>}
 
-        {downloadError && <p className="export-summary-error" role="alert">{downloadError}</p>}
-
-        <footer className="export-summary-actions">
+        <footer className="export-results-actions">
           <button className="secondary-button" disabled={isDownloading} onClick={onClose} type="button">
             Cancel
           </button>

@@ -71,10 +71,29 @@ export async function buildReviewDocuments(
     pageCount: number | null
     files: File[]
   }>,
+  onProgress?: (progress: {
+    documentsTotal: number
+    documentsProcessed: number
+    currentDocument: string | null
+  }) => void,
 ): Promise<ReviewDocumentInput[]> {
   const documents: ReviewDocumentInput[] = []
+  const documentsTotal = items.length
 
-  for (const item of items) {
+  onProgress?.({
+    documentsTotal,
+    documentsProcessed: 0,
+    currentDocument: items[0]?.displayName ?? null,
+  })
+
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
+    onProgress?.({
+      documentsTotal,
+      documentsProcessed: index,
+      currentDocument: item.displayName,
+    })
+
     const pageMap = new Map<number, string[]>()
 
     for (const file of item.files) {
@@ -100,6 +119,12 @@ export async function buildReviewDocuments(
       byteSize: item.byteSize,
       pageCount: item.pageCount ?? (extractedPages.length || null),
       pages: extractedPages,
+    })
+
+    onProgress?.({
+      documentsTotal,
+      documentsProcessed: index + 1,
+      currentDocument: item.displayName,
     })
   }
 
