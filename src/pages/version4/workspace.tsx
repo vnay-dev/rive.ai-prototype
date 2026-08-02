@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
-import { Astroid, Check, ChevronLeft, ChevronRight, Circle, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Plus, Search, Trash2, Upload, X } from "lucide-react"
+import { Astroid, Check, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Plus, Search, Trash2, Upload, X } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { GridLayout } from "@/components/layout/grid-layout"
@@ -37,8 +37,8 @@ const PREVIEW_AUTO_ADVANCE_MS = 4500
 
 const PREVIEW_STEPS = [
   {
-    title: "Upload engineering documents",
-    subtitle: "Add P&IDs, drawings, and PDFs to start extracting tags.",
+    title: "Bring your engineering drawings",
+    subtitle: "P&IDs, PDFs, folders, and ZIP archives are all supported.",
     illustration: getPublicAssetUrl("illustrations/folders.png"),
   },
   {
@@ -248,7 +248,7 @@ function SidebarJobStatusIcon({ status, label }: { status: JobSidebarStatus; lab
   if (status === "ready") {
     return (
       <span aria-label={label} className="sidebar-job-icon is-ready">
-        <Circle aria-hidden="true" size={14} strokeWidth={2.2} />
+        <span aria-hidden="true" className="sidebar-job-ready-dot" />
       </span>
     )
   }
@@ -472,9 +472,9 @@ function UploadView({
   const [isViewerClosing, setIsViewerClosing] = useState(false)
   const [previewStep, setPreviewStep] = useState(0)
   const [isPreviewDismissed, setIsPreviewDismissed] = useState(readPreviewDismissed)
-  const showPreview = job.phase === "upload" && job.items.length === 0 && !isPreviewDismissed
-  const showUploadEmpty = job.phase === "upload" && job.items.length === 0 && isPreviewDismissed
-  const showHeaderUploadActions = job.phase === "upload" && (job.items.length > 0 || showPreview)
+  const showUploadEmpty = job.phase === "upload" && job.items.length === 0
+  const showPreview = showUploadEmpty && !isPreviewDismissed
+  const showHeaderUploadActions = job.phase === "upload" && job.items.length > 0
 
   useEffect(() => {
     itemsRef.current = job.items
@@ -574,7 +574,7 @@ function UploadView({
           .
         </>
       ) : null)
-      : "Turn engineering drawings into trusted, searchable data with AI-assisted tag extraction and review."
+      : "Turn engineering drawings into searchable data with AI-assisted tag extraction."
 
   // Keep the viewer mounted through its closing animation, whether it was dismissed
   // directly or cleared by a tag decision.
@@ -967,120 +967,108 @@ function UploadView({
             </Tooltip>
           </div>
         </>
-      ) : showPreview ? (
-        <section
-          aria-label="Product preview"
-          aria-roledescription="carousel"
-          className={`upload-placeholder${isDragging ? " is-dragging" : ""}`}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <div className="upload-placeholder-frame">
-            <div aria-hidden="true" className="upload-placeholder-media">
-              {PREVIEW_STEPS.map((step, index) => (
-                <img
-                  alt=""
-                  className={`upload-placeholder-illustration${index === previewStep ? " is-active" : ""}`}
-                  decoding="async"
-                  key={step.illustration}
-                  src={step.illustration}
-                />
-              ))}
-            </div>
-            <div className="upload-placeholder-content">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    aria-label="Close preview"
-                    className="upload-placeholder-close"
-                    onClick={dismissPreview}
-                    type="button"
-                  >
-                    <X aria-hidden="true" size={16} strokeWidth={1.9} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Close preview</TooltipContent>
-              </Tooltip>
-              <div className="upload-placeholder-copy" key={previewStep}>
-                <h3>{PREVIEW_STEPS[previewStep].title}</h3>
-                <p>{PREVIEW_STEPS[previewStep].subtitle}</p>
-              </div>
-              <div className="upload-placeholder-steps">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      aria-label="Previous step"
-                      className="upload-placeholder-step-button"
-                      onClick={() => setPreviewStep((step) => (step - 1 + PREVIEW_STEPS.length) % PREVIEW_STEPS.length)}
-                      type="button"
-                    >
-                      <ChevronLeft aria-hidden="true" size={16} strokeWidth={1.9} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Previous step</TooltipContent>
-                </Tooltip>
-                <span aria-live="polite" className="upload-placeholder-fraction">
-                  {previewStep + 1}/{PREVIEW_STEPS.length}
-                </span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      aria-label="Next step"
-                      className="upload-placeholder-step-button"
-                      onClick={() => setPreviewStep((step) => (step + 1) % PREVIEW_STEPS.length)}
-                      type="button"
-                    >
-                      <ChevronRight aria-hidden="true" size={16} strokeWidth={1.9} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Next step</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </div>
-        </section>
       ) : showUploadEmpty ? (
-        <section
-          aria-label="Upload engineering documents"
-          className={`upload-empty${isDragging ? " is-dragging" : ""}`}
-          onClick={() => fileInputRef.current?.click()}
+        <div
+          className={`upload-start${isDragging ? " is-dragging" : ""}`}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         >
-          <div aria-hidden="true" className="upload-empty-visual">
-            <Upload size={28} strokeWidth={1.6} />
-          </div>
-          <div className="upload-empty-copy">
-            <h3>Upload engineering documents</h3>
-            <p>
-              Drag and drop engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
-            </p>
-          </div>
-          <span className="upload-actions">
-            <button
-              className="secondary-button"
-              onClick={(event) => {
-                event.stopPropagation()
-                folderInputRef.current?.click()
-              }}
-              type="button"
+          {showPreview && (
+            <section
+              aria-label="Product preview"
+              aria-roledescription="carousel"
+              className="upload-placeholder"
             >
-              Choose folder
-            </button>
-            <button
-              className="primary-button"
-              onClick={(event) => {
-                event.stopPropagation()
-                fileInputRef.current?.click()
-              }}
-              type="button"
-            >
-              Choose files
-            </button>
-          </span>
-        </section>
+              <div className="upload-placeholder-frame">
+                <div aria-hidden="true" className="upload-placeholder-media">
+                  {PREVIEW_STEPS.map((step, index) => (
+                    <img
+                      alt=""
+                      className={`upload-placeholder-illustration${index === previewStep ? " is-active" : ""}`}
+                      decoding="async"
+                      key={step.illustration}
+                      src={step.illustration}
+                    />
+                  ))}
+                </div>
+                <div className="upload-placeholder-content">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        aria-label="Close preview"
+                        className="upload-placeholder-close"
+                        onClick={dismissPreview}
+                        type="button"
+                      >
+                        <X aria-hidden="true" size={16} strokeWidth={1.9} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Close preview</TooltipContent>
+                  </Tooltip>
+                  <div className="upload-placeholder-copy" key={previewStep}>
+                    <h3>{PREVIEW_STEPS[previewStep].title}</h3>
+                    <p>{PREVIEW_STEPS[previewStep].subtitle}</p>
+                  </div>
+                  <div
+                    aria-label="Preview steps"
+                    className="upload-placeholder-steps"
+                    role="tablist"
+                  >
+                    {PREVIEW_STEPS.map((step, index) => (
+                      <button
+                        aria-label={`Go to step ${index + 1}: ${step.title}`}
+                        aria-selected={index === previewStep}
+                        className={`upload-placeholder-dot${index === previewStep ? " is-active" : ""}`}
+                        key={step.title}
+                        onClick={() => setPreviewStep(index)}
+                        role="tab"
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+          <section
+            aria-label="Upload engineering documents"
+            className="upload-empty"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <div aria-hidden="true" className="upload-empty-visual">
+              <Upload size={28} strokeWidth={1.6} />
+            </div>
+            <div className="upload-empty-copy">
+              <h3>Upload engineering documents</h3>
+              <p>
+                Drag and drop engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
+              </p>
+            </div>
+            <span className="upload-actions">
+              <button
+                className="secondary-button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  folderInputRef.current?.click()
+                }}
+                type="button"
+              >
+                Choose folder
+              </button>
+              <button
+                className="primary-button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  fileInputRef.current?.click()
+                }}
+                type="button"
+              >
+                Choose files
+              </button>
+            </span>
+          </section>
+        </div>
       ) : showUploadFiles ? (
         <section
           aria-label="Uploaded documents"
