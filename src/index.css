@@ -1289,10 +1289,19 @@
   }
 
   .upload-placeholder-illustration {
+    grid-area: 1 / 1;
     width: min(88%, 280px);
     height: auto;
     max-height: 100%;
     object-fit: contain;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .upload-placeholder-illustration.is-active {
+    opacity: 1;
+    visibility: visible;
     animation: upload-placeholder-fade .4s ease;
   }
 
@@ -1392,7 +1401,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .upload-placeholder-illustration,
+    .upload-placeholder-illustration.is-active,
     .upload-placeholder-copy {
       animation: none;
     }

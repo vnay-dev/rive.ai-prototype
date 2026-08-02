@@ -961,12 +961,15 @@ function UploadView({
         >
           <div className="upload-placeholder-frame">
             <div aria-hidden="true" className="upload-placeholder-media">
-              <img
-                alt=""
-                className="upload-placeholder-illustration"
-                key={previewStep}
-                src={PREVIEW_STEPS[previewStep].illustration}
-              />
+              {PREVIEW_STEPS.map((step, index) => (
+                <img
+                  alt=""
+                  className={`upload-placeholder-illustration${index === previewStep ? " is-active" : ""}`}
+                  decoding="async"
+                  key={step.illustration}
+                  src={step.illustration}
+                />
+              ))}
             </div>
             <div className="upload-placeholder-content">
               <Tooltip>
