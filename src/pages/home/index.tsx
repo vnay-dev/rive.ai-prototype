@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useReviewJobs, type NewUploadEntry } from "@/hooks/use-review-jobs"
 import { buildReviewExportRows } from "@/lib/export-review"
 import { flattenTagOccurrences, groupExtractedTags } from "@/lib/review"
+import { getPublicAssetUrl } from "@/lib/media-assets"
 import {
   getExtractionSummary,
   getJobSidebarStatus,
@@ -35,19 +36,21 @@ const PREVIEW_STEPS = [
   {
     title: "Upload engineering documents",
     subtitle: "Add P&IDs, drawings, and PDFs to start extracting tags.",
-    color: "#dbeafe",
+    illustration: getPublicAssetUrl("illustrations/folders.png"),
   },
   {
     title: "AI extracts engineering tags",
     subtitle: "Occurrences are grouped so you can review them in one place.",
-    color: "#dcfce7",
+    illustration: getPublicAssetUrl("illustrations/processing.png"),
   },
   {
     title: "Validate and export",
     subtitle: "Approve, reject, or flag tags, then export trusted results.",
-    color: "#fef3c7",
+    illustration: getPublicAssetUrl("illustrations/results.png"),
   },
 ] as const
+
+const BRAND_MARK_SRC = getPublicAssetUrl("rive-logo.svg")
 
 const PREVIEW_DISMISSED_KEY = "rive.upload-preview.dismissed"
 
@@ -111,7 +114,7 @@ function Sidebar({
     <div className="sidebar-content">
       <div className="sidebar-header">
         <a aria-label="Rive" className="brand" href="/">
-          <img alt="" aria-hidden="true" className="brand-mark" src="/rive-logo.svg" />
+          <img alt="" aria-hidden="true" className="brand-mark" src={BRAND_MARK_SRC} />
         </a>
         {!isCollapsed && (
           <Tooltip>
@@ -139,7 +142,7 @@ function Sidebar({
                 onClick={onToggleCollapse}
                 type="button"
               >
-                <img alt="" aria-hidden="true" className="brand-mark" src="/rive-logo.svg" />
+                <img alt="" aria-hidden="true" className="brand-mark" src={BRAND_MARK_SRC} />
                 <PanelLeft aria-hidden="true" className="sidebar-brand-expand-icon" size={16} strokeWidth={2} />
               </button>
             </TooltipTrigger>
@@ -957,11 +960,14 @@ function UploadView({
           onDrop={handleDrop}
         >
           <div className="upload-placeholder-frame">
-            <div
-              aria-hidden="true"
-              className="upload-placeholder-media"
-              style={{ background: PREVIEW_STEPS[previewStep].color }}
-            />
+            <div aria-hidden="true" className="upload-placeholder-media">
+              <img
+                alt=""
+                className="upload-placeholder-illustration"
+                key={previewStep}
+                src={PREVIEW_STEPS[previewStep].illustration}
+              />
+            </div>
             <div className="upload-placeholder-content">
               <Tooltip>
                 <TooltipTrigger asChild>
