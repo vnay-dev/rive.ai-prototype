@@ -389,6 +389,49 @@
     margin: 0 0 6px 8px;
   }
 
+  .sidebar-job-subgroup-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 20px 0 4px;
+    padding: 0 8px;
+    border: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-align: left;
+    text-transform: none;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .sidebar-job-subgroup-toggle:hover {
+    color: var(--foreground);
+  }
+
+  .sidebar-job-subgroup-toggle:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .sidebar-job-subgroup-chevron {
+    flex: 0 0 auto;
+    transition: transform .15s ease;
+  }
+
+  .sidebar-job-subgroup-toggle.is-expanded .sidebar-job-subgroup-chevron {
+    transform: rotate(90deg);
+  }
+
+  .sidebar-job-completed-group {
+    display: contents;
+  }
+
   .nav-link,
   .filter-link {
     display: flex;

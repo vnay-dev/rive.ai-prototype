@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react"
-import { Astroid, Check, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Pause, Play, Plus, Search, Trash2, Upload, X } from "lucide-react"
+import { Astroid, Check, ChevronRight, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Pause, Play, Plus, Search, Trash2, Upload, X } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { GridLayout } from "@/components/layout/grid-layout"
@@ -112,13 +112,38 @@ function Sidebar({
   onRenameJob,
   onDeleteJob,
 }: SidebarProps) {
+  const completedGroupId = useId()
+  const [isCompletedExpanded, setIsCompletedExpanded] = useState(true)
   const listedJobs = jobs.filter(isListedReviewJob)
-  const listedJobKey = listedJobs.map((job) => `${job.id}:${Number(job.pinned)}`).join("|")
+  const activeJobs = listedJobs.filter((job) => !job.completedAt)
+  const completedJobs = listedJobs.filter((job) => Boolean(job.completedAt))
+  const activeIsCompleted = completedJobs.some((job) => job.id === activeJobId)
+  const visibleJobCount = activeJobs.length + (isCompletedExpanded ? completedJobs.length : 0)
+  const listedJobKey = listedJobs
+    .map((job) => `${job.id}:${Number(job.pinned)}:${Number(Boolean(job.completedAt))}`)
+    .join("|")
   const { listRef: jobListRef, activeIndicator } = useSidebarActiveIndicator(
     String(activeJobId ?? ""),
-    listedJobs.length,
-    `${listedJobKey}|${Number(isCollapsed)}`,
+    visibleJobCount,
+    `${listedJobKey}|${Number(isCollapsed)}|${Number(isCompletedExpanded)}`,
   )
+
+  useEffect(() => {
+    if (activeIsCompleted) setIsCompletedExpanded(true)
+  }, [activeIsCompleted])
+
+  function renderJobList(groupJobs: RuntimeReviewJob[]) {
+    return groupJobs.map((job) => (
+      <SidebarJob
+        isActive={job.id === activeJobId}
+        job={job}
+        key={job.id}
+        onDelete={() => onDeleteJob?.(job.id)}
+        onRename={(name) => onRenameJob?.(job.id, name)}
+        onSelect={() => onSelectJob(job.id)}
+      />
+    ))
+  }
 
   return (
     <div className="sidebar-content">
@@ -209,16 +234,36 @@ function Sidebar({
                 height: activeIndicator.height,
               }}
             />
-            {listedJobs.map((job) => (
-              <SidebarJob
-                isActive={job.id === activeJobId}
-                job={job}
-                key={job.id}
-                onDelete={() => onDeleteJob?.(job.id)}
-                onRename={(name) => onRenameJob?.(job.id, name)}
-                onSelect={() => onSelectJob(job.id)}
-              />
-            ))}
+            {renderJobList(activeJobs)}
+            {completedJobs.length > 0 && (
+              <>
+                <button
+                  aria-controls={completedGroupId}
+                  aria-expanded={isCompletedExpanded}
+                  className={`sidebar-job-subgroup-toggle${isCompletedExpanded ? " is-expanded" : ""}`}
+                  onClick={() => setIsCompletedExpanded((open) => !open)}
+                  type="button"
+                >
+                  <span>Completed</span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="sidebar-job-subgroup-chevron"
+                    size={14}
+                    strokeWidth={2}
+                  />
+                </button>
+                {isCompletedExpanded && (
+                  <div
+                    aria-label="Completed review jobs"
+                    className="sidebar-job-completed-group"
+                    id={completedGroupId}
+                    role="group"
+                  >
+                    {renderJobList(completedJobs)}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
