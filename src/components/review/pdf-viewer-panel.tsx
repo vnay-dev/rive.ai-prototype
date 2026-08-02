@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, GripVertical, Minus, Plus, ScanSearch, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Minus, Plus, ScanSearch, X } from "lucide-react"
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -60,6 +60,7 @@ const MIN_PANEL_WIDTH = 420
 const MAX_PANEL_WIDTH = 920
 const MAIN_CONTENT_RESERVE = 380
 const PANEL_WIDTH_STORAGE_KEY = "rive.pdf-viewer-width"
+const HIGHLIGHTS_STORAGE_KEY = "rive.pdf-viewer-highlights"
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value / ZOOM_STEP) * ZOOM_STEP))
@@ -82,6 +83,24 @@ function readStoredPanelWidth() {
     return clampPanelWidth(parsed)
   } catch {
     return DEFAULT_PANEL_WIDTH
+  }
+}
+
+function readHighlightsVisible() {
+  try {
+    const raw = localStorage.getItem(HIGHLIGHTS_STORAGE_KEY)
+    if (raw === null) return true
+    return raw !== "0"
+  } catch {
+    return true
+  }
+}
+
+function persistHighlightsVisible(visible: boolean) {
+  try {
+    localStorage.setItem(HIGHLIGHTS_STORAGE_KEY, visible ? "1" : "0")
+  } catch {
+    // Ignore quota / private-mode failures.
   }
 }
 
@@ -217,6 +236,7 @@ export function PdfViewerPanel({
   const [stageWidth, setStageWidth] = useState(0)
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [zoom, setZoom] = useState(AUTO_ZOOM)
+  const [highlightsVisible, setHighlightsVisible] = useState(readHighlightsVisible)
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
   const [isResizing, setIsResizing] = useState(false)
   const [minimapSize, setMinimapSize] = useState({ width: MINIMAP_WIDTH, height: 0 })
@@ -600,7 +620,7 @@ export function PdfViewerPanel({
   return (
     <aside
       aria-label={`${tag} occurrences in ${documentName}`}
-      className={`pdf-viewer-panel${isClosing ? " is-closing" : ""}${isResizing ? " is-resizing" : ""}`}
+      className={`pdf-viewer-panel${isClosing ? " is-closing" : ""}${isResizing ? " is-resizing" : ""}${highlightsVisible ? "" : " highlights-off"}`}
     >
       <div
         aria-label="Resize document viewer"
@@ -719,6 +739,30 @@ export function PdfViewerPanel({
           <ScanSearch aria-hidden="true" size={14} strokeWidth={1.9} />
           Focus
         </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="pdf-viewer-tooltip-target">
+              <button
+                aria-label={highlightsVisible ? "Hide highlights" : "Show highlights"}
+                aria-pressed={highlightsVisible}
+                className={`pdf-viewer-zoom-button pdf-viewer-highlight-toggle${highlightsVisible ? " is-on" : ""}`}
+                onClick={() => {
+                  setHighlightsVisible((current) => {
+                    const next = !current
+                    persistHighlightsVisible(next)
+                    return next
+                  })
+                }}
+                type="button"
+              >
+                <Highlighter aria-hidden="true" size={14} strokeWidth={1.9} />
+              </button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {highlightsVisible ? "Hide highlights" : "Show highlights"}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <div className="pdf-viewer-body">

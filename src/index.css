@@ -196,19 +196,15 @@
     font-size: 18px;
     font-weight: 650;
     text-decoration: none;
-    padding: 2px 4px;
+    padding: 2px 4px 2px 14px;
   }
 
   .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 27px;
-    height: 27px;
+    display: block;
+    width: auto;
+    height: 28px;
     flex: 0 0 auto;
-    color: white;
-    background: var(--foreground);
-    border-radius: 8px;
-    font-size: 13px;
+    object-fit: contain;
   }
 
   .brand-name {
@@ -265,6 +261,14 @@
   .sidebar-brand-toggle .sidebar-brand-expand-icon {
     grid-area: 1 / 1;
     transition: opacity .15s ease;
+  }
+
+  .sidebar-brand-toggle .brand-mark {
+    /* Crop full wordmark SVG to the mark only (left ~73/234 of viewBox). */
+    width: 20px;
+    height: 23px;
+    object-fit: cover;
+    object-position: left center;
   }
 
   .sidebar-brand-expand-icon {
@@ -1201,11 +1205,21 @@
     gap: 18px;
     min-height: 0;
     width: 100%;
-    padding: 28px 24px;
+    padding: 40px 24px;
     border: 0;
-    border-radius: 0;
-    background: transparent;
+    border-radius: 16px;
+    background: var(--sidebar);
     text-align: center;
+    cursor: pointer;
+    transition: background .15s ease;
+  }
+
+  .upload-empty:hover {
+    background: color-mix(in oklab, var(--sidebar) 78%, var(--border));
+  }
+
+  .upload-empty.is-dragging {
+    background: color-mix(in oklab, var(--sidebar) 65%, var(--border));
   }
 
   .upload-empty-visual {
@@ -1223,7 +1237,7 @@
   .upload-empty-copy {
     display: grid;
     gap: 8px;
-    max-width: 420px;
+    max-width: 440px;
   }
 
   .upload-empty-copy h3 {
@@ -1236,6 +1250,21 @@
     color: var(--muted-foreground);
     font-size: 14px;
     line-height: 1.55;
+  }
+
+  .upload-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .upload-actions .primary-button,
+  .upload-actions .secondary-button {
+    min-height: 44px;
+    padding: 12px 22px;
+    font-size: 15px;
   }
 
   .upload-placeholder-frame {
@@ -1379,52 +1408,19 @@
     }
   }
 
-  .upload-bar {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 12px 14px;
-    border: 1.5px dashed var(--border);
-    border-radius: 12px;
-    background: var(--background);
-    transition: border-color .15s ease, background .15s ease;
-  }
-
-  .upload-bar.is-dragging {
-    border-color: var(--foreground);
-    background: var(--muted);
-  }
-
-  .upload-bar-hint {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    color: var(--muted-foreground);
-    font-size: 13px;
-  }
-
-  .upload-bar-actions {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 8px;
-  }
-
-  .upload-bar .primary-button,
-  .upload-bar .secondary-button {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
   .upload-file-list {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border: 0;
-    border-radius: 0;
+    border: 1.5px dashed transparent;
+    border-radius: 12px;
     background: transparent;
+    transition: border-color .15s ease, background .15s ease;
+  }
+
+  .upload-file-list.is-dragging {
+    border-color: var(--foreground);
+    background: var(--muted);
   }
 
   .upload-file-list ul {
@@ -1822,9 +1818,17 @@
     padding: 24px 20px 24px;
     overflow: auto;
     align-content: start;
+    /* Keep cards content-sized; overflow:hidden on children would otherwise let
+       the grid compress them below their occurrence list height. */
+    grid-auto-rows: min-content;
   }
 
   .tag-review-document {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    width: 100%;
+    max-height: min(320px, 50dvh);
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
@@ -1873,6 +1877,11 @@
     margin: 0;
     padding: 0;
     display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   .tag-review-occurrence {
@@ -2144,16 +2153,16 @@
     background: transparent;
   }
 
-  .app-shell.version4 .upload-bar .primary-button {
+  .app-shell.version4 .upload-actions .primary-button {
     background: #000b20;
     color: #ffffff;
   }
 
-  .app-shell.version4 .upload-bar .primary-button:hover:not(:disabled) {
+  .app-shell.version4 .upload-actions .primary-button:hover:not(:disabled) {
     background: color-mix(in srgb, #000b20 86%, #ffffff);
   }
 
-  .app-shell.version4 .upload-bar .primary-button:active:not(:disabled) {
+  .app-shell.version4 .upload-actions .primary-button:active:not(:disabled) {
     background: color-mix(in srgb, #000b20 94%, #ffffff);
   }
 
@@ -2182,15 +2191,6 @@
   .app-shell.version4 .tag-review-occurrence-actions .primary-button.is-approved:active:not(:disabled) {
     color: #147244;
     background: #daf5e6;
-  }
-
-  .app-shell.version4 .upload-bar-hint {
-    font-size: 15px;
-  }
-
-  .app-shell.version4 .upload-bar-hint svg {
-    color: #6b6b6b;
-    flex: 0 0 auto;
   }
 
   .app-shell.version4 .sidebar-job.is-active {
@@ -3083,6 +3083,16 @@
     margin-left: auto;
   }
 
+  .pdf-viewer-highlight-toggle.is-on {
+    border-color: color-mix(in oklab, #ca8a04 45%, var(--border));
+    background: color-mix(in oklab, #facc15 18%, var(--background));
+    color: #92400e;
+  }
+
+  .pdf-viewer-highlight-toggle.is-on:hover:not(:disabled) {
+    background: color-mix(in oklab, #facc15 28%, var(--background));
+  }
+
   .pdf-viewer-body {
     position: relative;
     flex: 1;
@@ -3157,31 +3167,40 @@
     }
   }
 
+  /* Soft tint only — no thick outer ring. Multiply keeps underlying text readable. */
   .pdf-viewer-highlight {
     position: absolute;
     z-index: 2;
-    border-radius: 5px;
-    background: rgb(250 204 21 / .45);
-    box-shadow: inset 0 0 0 2px rgb(250 204 21 / .9), 0 0 0 3px rgb(180 83 9), 0 0 0 8px rgb(250 204 21 / .4), 0 0 28px rgb(245 158 11 / .45);
+    border-radius: 3px;
+    background: rgb(250 204 21 / .26);
+    box-shadow: inset 0 0 0 1px rgb(217 119 6 / .5);
+    mix-blend-mode: multiply;
     pointer-events: none;
+    transition: opacity .15s ease;
   }
 
   .pdf-viewer-highlight.is-active {
     z-index: 3;
-    background: rgb(250 204 21 / .55);
-    box-shadow: inset 0 0 0 2px rgb(254 240 138), 0 0 0 4px rgb(146 64 14), 0 0 0 10px rgb(251 191 36 / .55), 0 0 36px rgb(245 158 11 / .65);
+    background: rgb(250 204 21 / .32);
+    box-shadow: inset 0 0 0 1.5px rgb(180 83 9 / .65);
     animation: pdf-viewer-highlight-pulse 1.15s ease-in-out 2;
   }
 
-  @keyframes pdf-viewer-highlight-pulse {
+  .pdf-viewer-panel.highlights-off .pdf-viewer-highlight,
+  .pdf-viewer-panel.highlights-off .pdf-viewer-minimap-mark {
+    opacity: 0;
+  }
 
+  @keyframes pdf-viewer-highlight-pulse {
     0%,
     100% {
-      box-shadow: inset 0 0 0 2px rgb(254 240 138), 0 0 0 4px rgb(146 64 14), 0 0 0 10px rgb(251 191 36 / .55), 0 0 36px rgb(245 158 11 / .65);
+      background: rgb(250 204 21 / .32);
+      box-shadow: inset 0 0 0 1.5px rgb(180 83 9 / .65);
     }
 
     50% {
-      box-shadow: inset 0 0 0 2px rgb(254 243 199), 0 0 0 5px rgb(146 64 14), 0 0 0 14px rgb(251 191 36 / .7), 0 0 48px rgb(245 158 11 / .85);
+      background: rgb(250 204 21 / .4);
+      box-shadow: inset 0 0 0 1.5px rgb(180 83 9 / .8);
     }
   }
 
@@ -3227,14 +3246,15 @@
     position: absolute;
     z-index: 1;
     border-radius: 2px;
-    background: rgb(250 204 21 / .85);
-    box-shadow: 0 0 0 1px rgb(180 83 9);
+    background: rgb(250 204 21 / .55);
+    box-shadow: inset 0 0 0 1px rgb(217 119 6 / .55);
     pointer-events: none;
+    transition: opacity .15s ease;
   }
 
   .pdf-viewer-minimap-mark.is-active {
-    background: rgb(245 158 11);
-    box-shadow: 0 0 0 1.5px rgb(146 64 14);
+    background: rgb(245 158 11 / .7);
+    box-shadow: inset 0 0 0 1px rgb(180 83 9 / .7);
   }
 
   .pdf-viewer-minimap-viewport {
@@ -3920,12 +3940,12 @@
       grid-template-columns: minmax(0, 1fr) auto 28px;
     }
 
-    .upload-bar {
-      flex-wrap: wrap;
+    .upload-actions {
+      width: 100%;
     }
 
-    .upload-bar-actions {
-      width: 100%;
+    .page-header-actions .upload-actions {
+      justify-content: flex-end;
     }
 
     .pdf-viewer-panel {

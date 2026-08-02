@@ -110,9 +110,8 @@ function Sidebar({
   return (
     <div className="sidebar-content">
       <div className="sidebar-header">
-        <a className="brand" href="/">
-          <span className="brand-mark" aria-hidden="true">R</span>
-          <span className="brand-name">Rive</span>
+        <a aria-label="Rive" className="brand" href="/">
+          <img alt="" aria-hidden="true" className="brand-mark" src="/rive-logo.svg" />
         </a>
         {!isCollapsed && (
           <Tooltip>
@@ -140,7 +139,7 @@ function Sidebar({
                 onClick={onToggleCollapse}
                 type="button"
               >
-                <span className="brand-mark" aria-hidden="true">R</span>
+                <img alt="" aria-hidden="true" className="brand-mark" src="/rive-logo.svg" />
                 <PanelLeft aria-hidden="true" className="sidebar-brand-expand-icon" size={16} strokeWidth={2} />
               </button>
             </TooltipTrigger>
@@ -476,6 +475,7 @@ function UploadView({
   const [isPreviewDismissed, setIsPreviewDismissed] = useState(readPreviewDismissed)
   const showPreview = job.phase === "upload" && job.items.length === 0 && !isPreviewDismissed
   const showUploadEmpty = job.phase === "upload" && job.items.length === 0 && isPreviewDismissed
+  const showHeaderUploadActions = job.phase === "upload" && (job.items.length > 0 || showPreview)
 
   useEffect(() => {
     itemsRef.current = job.items
@@ -832,7 +832,18 @@ function UploadView({
             <h2>{pageTitle}</h2>
             {pageSubtitle && <p className="page-subtitle">{pageSubtitle}</p>}
           </div>
-          {job.phase === "results" ? (
+          {showHeaderUploadActions ? (
+            <div className="page-header-actions">
+              <span className="upload-actions">
+                <button className="secondary-button" onClick={() => folderInputRef.current?.click()} type="button">
+                  Choose folder
+                </button>
+                <button className="primary-button" onClick={() => fileInputRef.current?.click()} type="button">
+                  Choose files
+                </button>
+              </span>
+            </div>
+          ) : job.phase === "results" ? (
             <div className="page-header-actions">
               {isReviewComplete ? (
                 <ExportMenu
@@ -888,26 +899,7 @@ function UploadView({
       </header>
 
       {job.phase === "upload" && (
-        <div
-          aria-label="Add documents"
-          className={`upload-bar${isDragging ? " is-dragging" : ""}`}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <span className="upload-bar-hint">
-            <Upload aria-hidden="true" size={15} strokeWidth={1.9} />
-            {isDragging ? "Drop to upload" : "Drag and drop files, folders, or zip archives here"}
-          </span>
-          <span className="upload-bar-actions">
-            <button className="secondary-button" onClick={() => folderInputRef.current?.click()} type="button">
-              Choose folder
-            </button>
-            <button className="primary-button" onClick={() => fileInputRef.current?.click()} type="button">
-              Choose files
-            </button>
-          </span>
-
+        <>
           <input
             accept=".zip,application/zip,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.png,.jpg,.jpeg"
             className="sr-only"
@@ -936,7 +928,7 @@ function UploadView({
             }}
             type="file"
           />
-        </div>
+        </>
       )}
 
       {job.phase === "results" && job.review && isReviewComplete ? (
@@ -956,7 +948,14 @@ function UploadView({
           />
         </section>
       ) : showPreview ? (
-        <section className="upload-placeholder" aria-label="Product preview" aria-roledescription="carousel">
+        <section
+          aria-label="Product preview"
+          aria-roledescription="carousel"
+          className={`upload-placeholder${isDragging ? " is-dragging" : ""}`}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           <div className="upload-placeholder-frame">
             <div
               aria-hidden="true"
@@ -1016,19 +1015,54 @@ function UploadView({
           </div>
         </section>
       ) : showUploadEmpty ? (
-        <section className="upload-empty" aria-label="No documents uploaded">
+        <section
+          aria-label="Upload engineering documents"
+          className={`upload-empty${isDragging ? " is-dragging" : ""}`}
+          onClick={() => fileInputRef.current?.click()}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           <div aria-hidden="true" className="upload-empty-visual">
-            <FileText size={28} strokeWidth={1.6} />
+            <Upload size={28} strokeWidth={1.6} />
           </div>
           <div className="upload-empty-copy">
-            <h3>No documents uploaded yet</h3>
+            <h3>Upload engineering documents</h3>
             <p>
-              Upload engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
+              Drag and drop engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
             </p>
           </div>
+          <span className="upload-actions">
+            <button
+              className="secondary-button"
+              onClick={(event) => {
+                event.stopPropagation()
+                folderInputRef.current?.click()
+              }}
+              type="button"
+            >
+              Choose folder
+            </button>
+            <button
+              className="primary-button"
+              onClick={(event) => {
+                event.stopPropagation()
+                fileInputRef.current?.click()
+              }}
+              type="button"
+            >
+              Choose files
+            </button>
+          </span>
         </section>
       ) : showUploadFiles ? (
-        <section aria-label="Uploaded documents" className="upload-file-list">
+        <section
+          aria-label="Uploaded documents"
+          className={`upload-file-list${isDragging ? " is-dragging" : ""}`}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
           <ul>
             {job.items.map((item) => (
               <li className={`job-row upload-file-row${item.status === "uploading" ? " is-uploading" : ""}`} key={item.id}>
