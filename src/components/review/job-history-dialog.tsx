@@ -1,4 +1,4 @@
-import { useEffect, useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { createPortal } from "react-dom"
 import { History } from "lucide-react"
 
@@ -30,10 +30,15 @@ function JobTimestamp({ value }: { value: number }) {
 
 export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
   const titleId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const history = buildJobHistoryEvents(job)
   const statusLabel = getJobDetailsStatusLabel(job)
   const status = getJobSidebarStatus(job)
   const tagsExtracted = getJobExtractedTagCount(job)
+
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -49,7 +54,9 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
         aria-labelledby={titleId}
         aria-modal="true"
         className="job-history-dialog"
+        ref={dialogRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header className="job-history-header">
           <div className="job-history-heading">
@@ -60,7 +67,6 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
             <TooltipTrigger asChild>
               <button
                 aria-label="Close job details"
-                autoFocus
                 className="export-summary-close"
                 onClick={onClose}
                 type="button"
@@ -73,35 +79,39 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
         </header>
 
         <div className="job-history-body">
-          <dl className="job-history-meta">
-            <div>
-              <dt>Status</dt>
-              <dd>
-                <span className={`job-status-tag is-${status}`}>{statusLabel}</span>
-              </dd>
-            </div>
-            <div>
-              <dt>Created</dt>
-              <dd><JobTimestamp value={job.createdAt} /></dd>
-            </div>
-            <div>
-              <dt>Last Updated</dt>
-              <dd><JobTimestamp value={job.updatedAt} /></dd>
-            </div>
-            <div>
-              <dt>Documents</dt>
-              <dd>{job.items.length}</dd>
-            </div>
-            <div>
-              <dt>Tags Extracted</dt>
-              <dd>{tagsExtracted}</dd>
-            </div>
-          </dl>
+          <section aria-label="Basic info" className="job-history-info">
+            <dl className="job-history-meta">
+              <div>
+                <dt>Status</dt>
+                <dd>
+                  <span className={`job-status-tag is-${status}`}>{statusLabel}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd><JobTimestamp value={job.createdAt} /></dd>
+              </div>
+              <div>
+                <dt>Last Updated</dt>
+                <dd><JobTimestamp value={job.updatedAt} /></dd>
+              </div>
+              <div>
+                <dt>Documents</dt>
+                <dd>{job.items.length}</dd>
+              </div>
+              <div>
+                <dt>Tags Extracted</dt>
+                <dd>{tagsExtracted}</dd>
+              </div>
+            </dl>
+          </section>
 
-          <section aria-label="History" className="job-history-timeline">
+          <div aria-hidden="true" className="job-history-divider" />
+
+          <section aria-label="Activity timeline" className="job-history-timeline">
             <h3>
               <History aria-hidden="true" size={14} strokeWidth={2} />
-              History
+              Activity timeline
             </h3>
             <ol>
               {history.map((event, index) => (

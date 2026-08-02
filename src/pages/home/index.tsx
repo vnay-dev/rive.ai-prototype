@@ -92,7 +92,6 @@ type SidebarProps = {
   onSearchReviewJobs: () => void
   onSelectJob: (id: number) => void
   onRenameJob?: (id: number, name: string) => void
-  onPinJob?: (id: number) => void
   onDeleteJob?: (id: number) => void
 }
 
@@ -105,7 +104,6 @@ function Sidebar({
   onSearchReviewJobs,
   onSelectJob,
   onRenameJob,
-  onPinJob,
   onDeleteJob,
 }: SidebarProps) {
   const listedJobs = jobs.filter(isListedReviewJob)
@@ -192,7 +190,6 @@ function Sidebar({
                 job={job}
                 key={job.id}
                 onDelete={() => onDeleteJob?.(job.id)}
-                onPin={() => onPinJob?.(job.id)}
                 onRename={(name) => onRenameJob?.(job.id, name)}
                 onSelect={() => onSelectJob(job.id)}
               />
@@ -249,11 +246,10 @@ type SidebarJobProps = {
   isCollapsed: boolean
   onSelect: () => void
   onRename: (name: string) => void
-  onPin: () => void
   onDelete: () => void
 }
 
-function SidebarJob({ job, isActive, isCollapsed, onSelect, onRename, onPin, onDelete }: SidebarJobProps) {
+function SidebarJob({ job, isActive, isCollapsed, onSelect, onRename, onDelete }: SidebarJobProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -366,17 +362,6 @@ function SidebarJob({ job, isActive, isCollapsed, onSelect, onRename, onPin, onD
                     type="button"
                   >
                     Rename
-                  </button>
-                  <button
-                    className="sidebar-job-menu-item"
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      onPin()
-                    }}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {job.pinned ? "Unpin" : "Pin"}
                   </button>
                   <button
                     className="sidebar-job-menu-item"
@@ -1067,7 +1052,7 @@ function UploadView({
       ) : showUploadFiles ? (
         <section
           aria-label="Uploaded documents"
-          className={`upload-file-list${isDragging ? " is-dragging" : ""}`}
+          className={`upload-file-list${isDragging ? " is-dragging" : ""}${isExtracting ? " is-extracting" : ""}`}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
@@ -1424,7 +1409,6 @@ export function ReviewWorkspacePage({
     createJob,
     selectJob,
     renameJob,
-    pinJob,
     deleteJob,
     addUploads,
     patchUploadItem,
@@ -1457,7 +1441,6 @@ export function ReviewWorkspacePage({
           jobs={jobs}
           onDeleteJob={deleteJob}
           onNewReviewJob={startNewReviewJob}
-          onPinJob={pinJob}
           onRenameJob={renameJob}
           onSearchReviewJobs={() => setActiveView("search")}
           onSelectJob={handleSelectJob}
