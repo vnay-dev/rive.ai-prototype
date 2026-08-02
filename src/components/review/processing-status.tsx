@@ -1,8 +1,25 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 
 import type { ExtractionProgress } from "@/lib/review-jobs"
 
 type Stage = "preparing" | "reading" | "analyzing"
+
+// Wait-state copy only — real progress is the document count during reading.
+const ANALYZING_MESSAGES = [
+  "Looking for tags in your documents…",
+  "Finding tag IDs across pages…",
+  "Grouping the same tags together…",
+  "Recording where each tag appears…",
+  "Linking tags to source documents…",
+  "Building your review list…",
+  "Preparing tags for review…",
+  "Organizing findings by tag…",
+  "Getting results ready…",
+  "Almost ready for review…",
+]
+
+const READING_HOLD_MS = 2200
+const ANALYZING_MESSAGE_DURATION_MS = 2600
 
 function resolveStage(progress: ExtractionProgress | null | undefined): Stage {
   if (!progress || progress.documentsTotal <= 0) return "preparing"
@@ -19,7 +36,12 @@ export function useExtractionStatusMessage(progress: ExtractionProgress | null |
   )
 
   const [tick, setTick] = useState(false)
+  const [holdingReading, setHoldingReading] = useState(stage === "analyzing")
+  const [analyzingIndex, setAnalyzingIndex] = useState(0)
   const previousCountRef = useRef(documentsProcessed)
+  const previousStageRef = useRef(stage)
+
+  const displayStage: Stage = stage === "analyzing" && holdingReading ? "reading" : stage
 
   useEffect(() => {
     if (previousCountRef.current === documentsProcessed) return
@@ -29,11 +51,54 @@ export function useExtractionStatusMessage(progress: ExtractionProgress | null |
     return () => window.clearTimeout(timer)
   }, [documentsProcessed])
 
+  useLayoutEffect(() => {
+    const enteredAnalyzing = stage === "analyzing" && previousStageRef.current !== "analyzing"
+    previousStageRef.current = stage
+
+    if (stage !== "analyzing") {
+      setHoldingReading(false)
+      setAnalyzingIndex(0)
+      return
+    }
+
+    if (!enteredAnalyzing) return
+
+    setHoldingReading(true)
+    setAnalyzingIndex(0)
+  }, [stage])
+
+  useEffect(() => {
+    if (stage !== "analyzing" || !holdingReading) return
+
+    const holdTimer = window.setTimeout(() => {
+      setHoldingReading(false)
+    }, READING_HOLD_MS)
+
+    return () => window.clearTimeout(holdTimer)
+  }, [stage, holdingReading])
+
+  useEffect(() => {
+    if (stage !== "analyzing" || holdingReading) return
+
+    const intervalId = window.setInterval(() => {
+      setAnalyzingIndex((index) => (index + 1) % ANALYZING_MESSAGES.length)
+    }, ANALYZING_MESSAGE_DURATION_MS)
+
+    return () => window.clearInterval(intervalId)
+  }, [stage, holdingReading])
+
   const countDigits = Math.max(String(documentsTotal || 1).length, 1)
-  const messageKey = stage
+  const displayProcessed = displayStage === "reading" && stage === "analyzing"
+    ? documentsTotal
+    : documentsProcessed
+  const messageKey = displayStage === "analyzing"
+    ? `analyzing-${analyzingIndex}`
+    : displayStage === "reading" && stage === "analyzing"
+      ? "reading-hold"
+      : displayStage
 
   let message: ReactNode = "Preparing extraction…"
-  if (stage === "reading") {
+  if (displayStage === "reading") {
     message = (
       <>
         Reading documents (
@@ -42,7 +107,7 @@ export function useExtractionStatusMessage(progress: ExtractionProgress | null |
             className={`processing-count-current${tick ? " is-ticking" : ""}`}
             style={{ minWidth: `${countDigits}ch` }}
           >
-            {documentsProcessed}
+            {displayProcessed}
           </span>
           <span aria-hidden="true">/</span>
           <span>{documentsTotal}</span>
@@ -50,8 +115,8 @@ export function useExtractionStatusMessage(progress: ExtractionProgress | null |
         )…
       </>
     )
-  } else if (stage === "analyzing") {
-    message = "Extracting tags…"
+  } else if (displayStage === "analyzing") {
+    message = ANALYZING_MESSAGES[analyzingIndex]
   }
 
   return { message, messageKey }
