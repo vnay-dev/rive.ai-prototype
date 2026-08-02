@@ -2487,6 +2487,31 @@
     border-color: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
+  .app-shell.version4 .job-search {
+    --border: color-mix(in srgb, #13439a 14%, var(--soft-white));
+  }
+
+  .app-shell.version4 .job-search-result {
+    border-color: color-mix(in srgb, #13439a 14%, var(--soft-white));
+  }
+
+  .app-shell.version4 .job-search-tags span {
+    color: color-mix(in srgb, #13439a 62%, #1c1c1c);
+    background: color-mix(in srgb, #13439a 11%, var(--soft-white));
+  }
+
+  .app-shell.version4 .job-status-filter.is-active {
+    color: color-mix(in srgb, #13439a 68%, #1c1c1c);
+    border-color: color-mix(in srgb, #13439a 36%, var(--soft-white));
+    background: color-mix(in srgb, #13439a 11%, var(--soft-white));
+  }
+
+  .app-shell.version4 .job-search-field:focus-within {
+    border-color: color-mix(in srgb, #13439a 28%, var(--soft-white));
+    outline: 1px solid color-mix(in srgb, #13439a 22%, var(--soft-white));
+    outline-offset: 1px;
+  }
+
   .app-shell.version4 .tag-review-nav {
     background: var(--sidebar);
   }

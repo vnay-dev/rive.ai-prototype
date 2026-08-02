@@ -254,6 +254,7 @@ export function PdfViewerPanel({
   const [minimapSize, setMinimapSize] = useState({ width: MINIMAP_WIDTH, height: 0 })
   const [viewportRect, setViewportRect] = useState<ViewportRect | null>(null)
   const [isMinimapDragging, setIsMinimapDragging] = useState(false)
+  const [closeTooltipOpen, setCloseTooltipOpen] = useState(false)
   const resizeStartRef = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(null)
   const minimapDragRef = useRef<{ pointerId: number } | null>(null)
   const minimapRef = useRef<HTMLDivElement>(null)
@@ -695,12 +696,14 @@ export function PdfViewerPanel({
           <p className="pdf-viewer-file" title={documentName}>{documentName}</p>
           <p className="pdf-viewer-tag">{tag} · Page {currentPage}</p>
         </div>
-        <Tooltip>
+        <Tooltip open={closeTooltipOpen}>
           <TooltipTrigger asChild>
             <button
               aria-label="Close viewer"
               className="pdf-viewer-close"
               onClick={onClose}
+              onPointerEnter={() => setCloseTooltipOpen(true)}
+              onPointerLeave={() => setCloseTooltipOpen(false)}
               ref={closeRef}
               type="button"
             >
