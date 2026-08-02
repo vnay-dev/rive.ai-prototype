@@ -1,3 +1,4 @@
+import { USE_MOCK_DATA } from "@/lib/config"
 import { getMockReview } from "@/lib/mock-review"
 import {
   isReviewResult,
@@ -128,6 +129,13 @@ async function requestCompletion(
 }
 
 export async function startReview(items: ReviewDocumentInput[]): Promise<ReviewResponse> {
+  if (USE_MOCK_DATA) {
+    return {
+      source: "mock",
+      data: getMockReview(items),
+    }
+  }
+
   try {
     const content = await requestCompletion(SYSTEM_PROMPT, buildUserPrompt(items), REVIEW_TIMEOUT_MS)
     return { source: "api", data: parseReviewContent(content) }
@@ -169,8 +177,18 @@ function sanitizeJobName(raw: string) {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
+function mockJobName(items: ReviewDocumentInput[]) {
+  const first = items[0]?.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim()
+  if (!first) return "Mock Review"
+  return sanitizeJobName(first) || "Mock Review"
+}
+
 export async function generateJobName(items: ReviewDocumentInput[]): Promise<string | null> {
   if (items.length === 0) return null
+
+  if (USE_MOCK_DATA) {
+    return mockJobName(items)
+  }
 
   try {
     const content = await requestCompletion(

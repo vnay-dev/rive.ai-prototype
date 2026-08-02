@@ -63,7 +63,7 @@ function triggerBrowserDownload(blob: Blob, fileName: string) {
 export type ReviewExportFormat = "excel" | "csv"
 
 export async function downloadReviewWorkbook(jobName: string, rows: ReviewExportRow[]) {
-  const header = ["Tag", "Document", "Page", "Occurrence", "Confidence", "Status"]
+  const header = ["Tag", "Document", "Page", "Count", "Confidence", "Status"]
     .map((value) => ({
       value,
       fontWeight: "bold" as const,
@@ -99,7 +99,7 @@ export async function downloadReviewWorkbook(jobName: string, rows: ReviewExport
 }
 
 export function downloadReviewCsv(jobName: string, rows: ReviewExportRow[]) {
-  const headers = ["Tag", "Document", "Page", "Occurrence", "Confidence", "Status"]
+  const headers = ["Tag", "Document", "Page", "Count", "Confidence", "Status"]
 
   function escapeCsv(value: string | number) {
     const text = String(value)

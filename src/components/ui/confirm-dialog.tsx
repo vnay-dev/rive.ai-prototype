@@ -1,5 +1,7 @@
-import { useEffect, useId, type ReactNode } from "react"
+import { useId, useRef, type ReactNode } from "react"
 import { createPortal } from "react-dom"
+
+import { useModalFocus } from "@/hooks/use-modal-focus"
 
 type ConfirmDialogProps = {
   title: string
@@ -27,15 +29,14 @@ export function ConfirmDialog({
   const dialogId = useId()
   const titleId = `${dialogId}-title`
   const descriptionId = `${dialogId}-description`
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onCancel()
-    }
-
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [onCancel])
+  useModalFocus({
+    containerRef: dialogRef,
+    initialFocusRef: cancelRef,
+    onEscape: onCancel,
+  })
 
   return createPortal(
     <div className="confirm-dialog-scrim" role="presentation">
@@ -44,12 +45,18 @@ export function ConfirmDialog({
         aria-labelledby={titleId}
         aria-modal="true"
         className="confirm-dialog"
+        ref={dialogRef}
         role="alertdialog"
       >
         <h2 id={titleId}>{title}</h2>
         <p id={descriptionId}>{description}</p>
         <div className="confirm-dialog-actions">
-          <button autoFocus className="secondary-button" onClick={onCancel} type="button">
+          <button
+            className="secondary-button"
+            onClick={onCancel}
+            ref={cancelRef}
+            type="button"
+          >
             {cancelLabel}
           </button>
           <button

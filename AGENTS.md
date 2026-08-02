@@ -25,7 +25,7 @@ Review Job
 
 - Primary entity is the engineering tag.
 - Each tag groups all matching document occurrences.
-- Users review, approve, reject, or flag tags.
+- Users review, approve, reject, or mark tags as needs review.
 - PDF viewer opens in a right drawer with highlighted occurrences.
 - Review state is auto-saved.
 

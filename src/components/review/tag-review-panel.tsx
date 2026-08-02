@@ -63,6 +63,13 @@ function tagProgress(
   return { resolved, total: occurrences.length }
 }
 
+function tagProgressLabel(tag: string, progress: { resolved: number; total: number }) {
+  if (progress.total > 0 && progress.resolved === progress.total) {
+    return `${tag}, all occurrences reviewed`
+  }
+  return `${tag}, ${progress.resolved} of ${progress.total} reviewed`
+}
+
 function occurrenceMatches(target: ReviewViewerTarget | null | undefined, occurrence: TagOccurrence) {
   if (!target) return false
   return target.tag === occurrence.tag
@@ -132,6 +139,7 @@ export function TagReviewPanel({
   }, [allOccurrences])
 
   const [selectedTag, setSelectedTag] = useState(groups[0]?.tag ?? "")
+  const [tagAnnouncement, setTagAnnouncement] = useState("")
 
   useEffect(() => {
     if (groups.length === 0) {
@@ -149,6 +157,14 @@ export function TagReviewPanel({
       setSelectedTag(activeOccurrence.tag)
     }
   }, [activeOccurrence, groups])
+
+  useEffect(() => {
+    if (!selectedTag) {
+      setTagAnnouncement("")
+      return
+    }
+    setTagAnnouncement(`Showing tag ${selectedTag}`)
+  }, [selectedTag])
 
   const selectedGroup = groups.find((group) => group.tag === selectedTag) ?? groups[0]
   const selectedOccurrences = selectedGroup
@@ -221,7 +237,7 @@ export function TagReviewPanel({
   }, [groups, occurrencesByTag, viewportMax])
 
   if (groups.length === 0) {
-    return <p className="tag-review-empty">No tags extracted yet.</p>
+    return <p className="tag-review-empty">No tags extracted yet. Upload documents and run extract tags.</p>
   }
 
   return (
@@ -229,6 +245,9 @@ export function TagReviewPanel({
       className={`tag-review tag-review-${variant}`}
       style={variant === "sidebar" ? { height: sessionPanelHeight } : undefined}
     >
+      <div aria-live="polite" className="sr-only">
+        {tagAnnouncement}
+      </div>
       {variant === "sidebar" ? (
         <aside aria-label="Extracted tags" className="tag-review-nav">
           <div className="tag-review-nav-header">
@@ -260,13 +279,14 @@ export function TagReviewPanel({
                 >
                   <button
                     aria-current={isActive ? "true" : undefined}
+                    aria-label={tagProgressLabel(group.tag, progress)}
                     className="sidebar-job-select"
                     onClick={() => selectTag(group.tag)}
                     title={isComplete ? "All occurrences reviewed" : undefined}
                     type="button"
                   >
                     {isComplete ? (
-                      <span aria-label="All occurrences reviewed" className="sidebar-job-icon is-completed">
+                      <span aria-hidden="true" className="sidebar-job-icon is-completed">
                         <Check aria-hidden="true" size={14} strokeWidth={2.4} />
                       </span>
                     ) : (
@@ -274,7 +294,7 @@ export function TagReviewPanel({
                         <Circle size={14} strokeWidth={2.2} />
                       </span>
                     )}
-                    <span className="sidebar-job-text">{group.tag}</span>
+                    <span className="sidebar-job-text" aria-hidden="true">{group.tag}</span>
                   </button>
                 </div>
               )
@@ -292,13 +312,14 @@ export function TagReviewPanel({
               return (
                 <button
                   aria-current={isActive ? "true" : undefined}
+                  aria-label={tagProgressLabel(group.tag, progress)}
                   className={`tag-review-pill${isActive ? " is-active" : ""}`}
                   key={group.tag}
                   onClick={() => selectTag(group.tag)}
                   type="button"
                 >
-                  <span className="tag-review-pill-label">{group.tag}</span>
-                  <span className="tag-review-pill-meta">
+                  <span className="tag-review-pill-label" aria-hidden="true">{group.tag}</span>
+                  <span className="tag-review-pill-meta" aria-hidden="true">
                     {progress.resolved}/{progress.total}
                   </span>
                 </button>
@@ -355,7 +376,7 @@ export function TagReviewPanel({
                             <div className="tag-review-occurrence-meta">
                               <span>Page {occurrence.page}</span>
                               <span aria-hidden="true" className="tag-review-occurrence-sep" />
-                              <span>{pluralize(occurrence.occurrences, "match")}</span>
+                              <span>{pluralize(occurrence.occurrences, "time")}</span>
                               <span aria-hidden="true" className="tag-review-occurrence-sep" />
                               <button
                                 className="tertiary-button tag-occurrence-view"
@@ -383,8 +404,9 @@ export function TagReviewPanel({
                               </span>
                             ) : null}
                           </div>
-                          <div className="tag-review-occurrence-actions">
+                          <div className="tag-review-occurrence-actions" role="group" aria-label="Decision">
                             <button
+                              aria-pressed={decision === "rejected"}
                               className={`secondary-button${
                                 decision === "rejected"
                                   ? ` is-selected${decisionStyle === "button" ? " is-rejected" : ""}`
@@ -398,6 +420,7 @@ export function TagReviewPanel({
                                 : "Reject"}
                             </button>
                             <button
+                              aria-pressed={decision === "needs-review"}
                               className={`tertiary-button${
                                 decision === "needs-review"
                                   ? ` is-selected${decisionStyle === "button" ? " is-needs-review" : ""}`
@@ -409,6 +432,7 @@ export function TagReviewPanel({
                               Needs review
                             </button>
                             <button
+                              aria-pressed={decision === "approved"}
                               className={`primary-button${
                                 decision === "approved"
                                   ? ` is-selected${decisionStyle === "button" ? " is-approved" : ""}`

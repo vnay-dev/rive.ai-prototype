@@ -126,7 +126,7 @@ export function ReviewSummaryPanel({ rows, tagGroups }: ReviewSummaryPanelProps)
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4}>No validated findings to summarise.</td>
+                  <td colSpan={4}>No approved or rejected tags yet.</td>
                 </tr>
               )}
             </tbody>

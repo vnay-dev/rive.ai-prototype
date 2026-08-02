@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef } from "react"
+import { useId, useRef } from "react"
 import { createPortal } from "react-dom"
 import { History } from "lucide-react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useModalFocus } from "@/hooks/use-modal-focus"
 import {
   buildJobHistoryEvents,
   formatJobTimestampParts,
@@ -31,22 +32,17 @@ function JobTimestamp({ value }: { value: number }) {
 export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const history = buildJobHistoryEvents(job)
   const statusLabel = getJobDetailsStatusLabel(job)
   const status = getJobSidebarStatus(job)
   const tagsExtracted = getJobExtractedTagCount(job)
 
-  useEffect(() => {
-    dialogRef.current?.focus()
-  }, [])
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [onClose])
+  useModalFocus({
+    containerRef: dialogRef,
+    initialFocusRef: closeRef,
+    onEscape: onClose,
+  })
 
   return createPortal(
     <div className="confirm-dialog-scrim job-history-scrim" role="presentation">
@@ -56,7 +52,6 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
         className="job-history-dialog"
         ref={dialogRef}
         role="dialog"
-        tabIndex={-1}
       >
         <header className="job-history-header">
           <div className="job-history-heading">
@@ -69,6 +64,7 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
                 aria-label="Close job details"
                 className="export-summary-close"
                 onClick={onClose}
+                ref={closeRef}
                 type="button"
               >
                 ×
@@ -92,7 +88,7 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
                 <dd><JobTimestamp value={job.createdAt} /></dd>
               </div>
               <div>
-                <dt>Last Updated</dt>
+                <dt>Last updated</dt>
                 <dd><JobTimestamp value={job.updatedAt} /></dd>
               </div>
               <div>
@@ -100,7 +96,7 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
                 <dd>{job.items.length}</dd>
               </div>
               <div>
-                <dt>Tags Extracted</dt>
+                <dt>Tags extracted</dt>
                 <dd>{tagsExtracted}</dd>
               </div>
             </dl>

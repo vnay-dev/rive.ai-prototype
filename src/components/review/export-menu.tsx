@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { ChevronDown, Download } from "lucide-react"
 
 import { SlidingMenuHoverIndicator } from "@/components/ui/sliding-menu-hover"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMenuKeyboard } from "@/hooks/use-menu-keyboard"
 import {
   downloadReviewExport,
   type ReviewExportFormat,
@@ -20,8 +21,19 @@ type ExportMenuProps = {
 export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: ExportMenuProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuId = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+
+  const closeMenu = useCallback(() => setIsOpen(false), [])
+
+  useMenuKeyboard({
+    isOpen,
+    menuRef: popoverRef,
+    triggerRef,
+    onClose: closeMenu,
+  })
 
   useEffect(() => {
     if (!isOpen) return
@@ -32,16 +44,8 @@ export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: 
       }
     }
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsOpen(false)
-    }
-
     document.addEventListener("mousedown", handlePointerDown)
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
+    return () => document.removeEventListener("mousedown", handlePointerDown)
   }, [isOpen])
 
   async function exportAs(format: ReviewExportFormat) {
@@ -53,6 +57,7 @@ export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: 
       onExported?.()
     } finally {
       setIsExporting(false)
+      triggerRef.current?.focus()
     }
   }
 
@@ -64,11 +69,13 @@ export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: 
         <TooltipTrigger asChild>
           <span className="review-complete-tooltip-target">
             <button
+              aria-controls={isOpen ? menuId : undefined}
               aria-expanded={isOpen}
               aria-haspopup="menu"
               className="primary-button export-menu-trigger"
               disabled={!canExport}
               onClick={() => setIsOpen((open) => !open)}
+              ref={triggerRef}
               type="button"
             >
               <Download aria-hidden="true" size={15} strokeWidth={2.2} />
@@ -78,13 +85,14 @@ export function ExportMenu({ jobName, rows, onExported, slidingHover = false }: 
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          {isExporting ? "Export in progress" : "No validated results to export"}
+          {isExporting ? "Export in progress" : "No approved or rejected tags to export"}
         </TooltipContent>
       </Tooltip>
 
       {isOpen && (
         <div
           className={`export-menu-popover${slidingHover ? " has-sliding-hover" : ""}`}
+          id={menuId}
           ref={popoverRef}
           role="menu"
         >

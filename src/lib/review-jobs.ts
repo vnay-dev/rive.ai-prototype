@@ -368,9 +368,42 @@ export function getJobDetailsStatusLabel(job: RuntimeReviewJob) {
   const status = getJobSidebarStatus(job)
   if (status === "processing") return "Processing"
   if (status === "error") return "Failed"
-  if (status === "ready") return "In Review"
+  if (status === "ready") return "Ready for review"
   if (status === "completed") return "Completed"
   return "Draft"
+}
+
+/** Map technical failures to a short reason + next step for the sidebar. */
+export function toUserFacingReviewError(error: unknown) {
+  const raw = error instanceof Error ? error.message : ""
+  const lower = raw.toLowerCase()
+
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return "Extraction timed out. Try again with fewer documents."
+  }
+  if (lower.includes("abort")) {
+    return "Extraction timed out. Try again with fewer documents."
+  }
+  if (lower.includes("missing") && lower.includes("api")) {
+    return "Extraction isn’t configured. Add an API key, then try again."
+  }
+  if (lower.includes("failed with status") || lower.includes("request failed")) {
+    return "Couldn’t reach the extraction service. Check your connection and try again."
+  }
+  if (lower.includes("schema") || lower.includes("empty")) {
+    return "Extraction returned an unexpected result. Try again."
+  }
+  if (lower.includes("quota") || lower.includes("429")) {
+    return "Extraction limit reached. Wait a moment, then try again."
+  }
+  if (raw.trim()) {
+    // Prefer a known mapped message; avoid dumping provider jargon.
+    if (/openrouter|vite_|api key|status \d+/i.test(raw)) {
+      return "Tag extraction failed. Try again."
+    }
+  }
+
+  return "Tag extraction failed. Try again."
 }
 
 export type JobHistoryEvent = {

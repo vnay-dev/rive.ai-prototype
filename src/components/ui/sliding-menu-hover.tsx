@@ -27,16 +27,16 @@ export function SlidingMenuHoverIndicator({
   })
 
   useEffect(() => {
-    const root = containerRef.current
-    if (!root) return
+    if (!containerRef.current) return
+    const menuRoot: HTMLElement = containerRef.current
 
     function moveTo(item: HTMLElement | null) {
-      if (!item || !root) {
+      if (!item) {
         setIndicator((current) => (current.visible ? { ...current, visible: false } : current))
         return
       }
 
-      const rootRect = root.getBoundingClientRect()
+      const rootRect = menuRoot.getBoundingClientRect()
       const itemRect = item.getBoundingClientRect()
       const top = itemRect.top - rootRect.top
       const height = itemRect.height
@@ -52,7 +52,7 @@ export function SlidingMenuHoverIndicator({
       const target = event.target
       if (!(target instanceof Element)) return
       const item = target.closest(itemSelector)
-      if (!(item instanceof HTMLElement) || !root?.contains(item)) return
+      if (!(item instanceof HTMLElement) || !menuRoot.contains(item)) return
       moveTo(item)
     }
 
@@ -60,11 +60,29 @@ export function SlidingMenuHoverIndicator({
       moveTo(null)
     }
 
-    root.addEventListener("pointerover", handlePointerOver)
-    root.addEventListener("pointerleave", handlePointerLeave)
+    function handleFocusIn(event: FocusEvent) {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      const item = target.closest(itemSelector)
+      if (!(item instanceof HTMLElement) || !menuRoot.contains(item)) return
+      moveTo(item)
+    }
+
+    function handleFocusOut(event: FocusEvent) {
+      const next = event.relatedTarget
+      if (next instanceof Node && menuRoot.contains(next)) return
+      moveTo(null)
+    }
+
+    menuRoot.addEventListener("pointerover", handlePointerOver)
+    menuRoot.addEventListener("pointerleave", handlePointerLeave)
+    menuRoot.addEventListener("focusin", handleFocusIn)
+    menuRoot.addEventListener("focusout", handleFocusOut)
     return () => {
-      root.removeEventListener("pointerover", handlePointerOver)
-      root.removeEventListener("pointerleave", handlePointerLeave)
+      menuRoot.removeEventListener("pointerover", handlePointerOver)
+      menuRoot.removeEventListener("pointerleave", handlePointerLeave)
+      menuRoot.removeEventListener("focusin", handleFocusIn)
+      menuRoot.removeEventListener("focusout", handleFocusOut)
     }
   }, [containerRef, itemSelector])
 

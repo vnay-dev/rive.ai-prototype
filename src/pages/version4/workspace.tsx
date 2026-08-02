@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
-import { Astroid, Check, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Plus, Search, Trash2, Upload, X } from "lucide-react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react"
+import { Astroid, Check, CircleAlert, FileText, LoaderCircle, PanelLeft, PanelLeftClose, Pause, Play, Plus, Search, Trash2, Upload, X } from "lucide-react"
 
 import { AppLayout } from "@/components/layout/app-layout"
 import { GridLayout } from "@/components/layout/grid-layout"
@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SlidingMenuHoverIndicator } from "@/components/ui/sliding-menu-hover"
 import { TickerNumber } from "@/components/ui/ticker-number"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useMenuKeyboard } from "@/hooks/use-menu-keyboard"
 import { useReviewJobs, type NewUploadEntry } from "@/hooks/use-review-jobs"
 import { useSidebarActiveIndicator } from "@/hooks/use-sidebar-active-indicator"
 import { buildReviewExportRows } from "@/lib/export-review"
@@ -48,7 +49,7 @@ const PREVIEW_STEPS = [
   },
   {
     title: "Validate and export",
-    subtitle: "Approve, reject, or flag tags, then export trusted results.",
+    subtitle: "Approve, reject, or mark tags that need review, then export results.",
     illustration: getPublicAssetUrl("illustrations/results.png"),
   },
 ] as const
@@ -90,6 +91,7 @@ type SidebarProps = {
   jobs?: RuntimeReviewJob[]
   activeJobId: number | null
   isCollapsed: boolean
+  sidebarPanelId: string
   onToggleCollapse: () => void
   onNewReviewJob: () => void
   onSearchReviewJobs: () => void
@@ -102,6 +104,7 @@ function Sidebar({
   jobs = [],
   activeJobId,
   isCollapsed,
+  sidebarPanelId,
   onToggleCollapse,
   onNewReviewJob,
   onSearchReviewJobs,
@@ -127,7 +130,8 @@ function Sidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                aria-expanded
+                aria-controls={sidebarPanelId}
+                aria-expanded={!isCollapsed}
                 aria-label="Collapse sidebar"
                 className="sidebar-collapse"
                 onClick={onToggleCollapse}
@@ -143,7 +147,8 @@ function Sidebar({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                aria-expanded={false}
+                aria-controls={sidebarPanelId}
+                aria-expanded={!isCollapsed}
                 aria-label="Expand sidebar"
                 className="sidebar-brand-toggle"
                 onClick={onToggleCollapse}
@@ -188,7 +193,7 @@ function Sidebar({
         </Tooltip>
       )}
 
-      {listedJobs.length > 0 && (
+      {listedJobs.length > 0 && !isCollapsed && (
         <div className="sidebar-section">
           <p className="sidebar-label">Review jobs</p>
           <div className="sidebar-job-list" ref={jobListRef}>
@@ -220,42 +225,42 @@ function Sidebar({
     </div>
   )
 }
-function SidebarJobStatusIcon({ status, label }: { status: JobSidebarStatus; label?: string }) {
+function SidebarJobStatusIcon({ status }: { status: JobSidebarStatus }) {
   if (status === "idle") {
     return (
-      <span aria-label={label} className="sidebar-job-icon is-draft">
-        <FileText aria-hidden="true" size={14} strokeWidth={2.2} />
+      <span aria-hidden="true" className="sidebar-job-icon is-draft">
+        <FileText size={14} strokeWidth={2.2} />
       </span>
     )
   }
 
   if (status === "processing") {
     return (
-      <span aria-label={label} className="sidebar-job-icon is-processing">
-        <LoaderCircle aria-hidden="true" className="sidebar-job-spinner" size={14} strokeWidth={2.2} />
+      <span aria-hidden="true" className="sidebar-job-icon is-processing">
+        <LoaderCircle className="sidebar-job-spinner" size={14} strokeWidth={2.2} />
       </span>
     )
   }
 
   if (status === "error") {
     return (
-      <span aria-label={label} className="sidebar-job-icon is-error">
-        <CircleAlert aria-hidden="true" size={14} strokeWidth={2.2} />
+      <span aria-hidden="true" className="sidebar-job-icon is-error">
+        <CircleAlert size={14} strokeWidth={2.2} />
       </span>
     )
   }
 
   if (status === "ready") {
     return (
-      <span aria-label={label} className="sidebar-job-icon is-ready">
-        <span aria-hidden="true" className="sidebar-job-ready-dot" />
+      <span aria-hidden="true" className="sidebar-job-icon is-ready">
+        <span className="sidebar-job-ready-dot" />
       </span>
     )
   }
 
   return (
-    <span aria-label={label} className="sidebar-job-icon is-completed">
-      <Check aria-hidden="true" size={14} strokeWidth={2.4} />
+    <span aria-hidden="true" className="sidebar-job-icon is-completed">
+      <Check size={14} strokeWidth={2.4} />
     </span>
   )
 }
@@ -271,6 +276,8 @@ type SidebarJobProps = {
 function SidebarJob({ job, isActive, onSelect, onRename, onDelete }: SidebarJobProps) {
   const jobRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const kebabRef = useRef<HTMLButtonElement>(null)
+  const menuId = useId()
   const [isEditing, setIsEditing] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
@@ -279,6 +286,16 @@ function SidebarJob({ job, isActive, onSelect, onRename, onDelete }: SidebarJobP
   const status = getJobSidebarStatus(job)
   const statusLabel = jobSidebarStatusLabel(status)
   const statusDetail = job.errorMessage ? `${statusLabel}: ${job.errorMessage}` : statusLabel
+  const jobAccessibleName = `${job.name}, ${statusDetail}`
+
+  const closeMenu = useCallback(() => setIsMenuOpen(false), [])
+
+  useMenuKeyboard({
+    isOpen: isMenuOpen,
+    menuRef: popoverRef,
+    triggerRef: kebabRef,
+    onClose: closeMenu,
+  })
 
   useEffect(() => {
     setDraftName(job.name)
@@ -293,16 +310,8 @@ function SidebarJob({ job, isActive, onSelect, onRename, onDelete }: SidebarJobP
       }
     }
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setIsMenuOpen(false)
-    }
-
     document.addEventListener("mousedown", handlePointerDown)
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
+    return () => document.removeEventListener("mousedown", handlePointerDown)
   }, [isMenuOpen])
 
   function saveName() {
@@ -340,29 +349,37 @@ function SidebarJob({ job, isActive, onSelect, onRename, onDelete }: SidebarJobP
         ) : (
           <>
             <button
-              aria-current={isActive ? "page" : undefined}
+              aria-current={isActive ? "true" : undefined}
+              aria-label={jobAccessibleName}
               className="sidebar-job-select"
               onClick={onSelect}
               type="button"
             >
-              <SidebarJobStatusIcon label={statusDetail} status={status} />
+              <SidebarJobStatusIcon status={status} />
               {job.pinned && <span aria-hidden="true" className="sidebar-job-pin" />}
-              <span className="sidebar-job-text">{job.name}</span>
+              <span className="sidebar-job-text" aria-hidden="true">{job.name}</span>
             </button>
             <div className="sidebar-job-menu">
               <button
+                aria-controls={isMenuOpen ? menuId : undefined}
                 aria-expanded={isMenuOpen}
                 aria-haspopup="menu"
                 aria-label={`Actions for ${job.name}`}
                 className="sidebar-job-kebab"
                 onClick={() => setIsMenuOpen((open) => !open)}
+                ref={kebabRef}
                 type="button"
               >
                 <span aria-hidden="true">⋯</span>
               </button>
             </div>
             {isMenuOpen && (
-              <div className="sidebar-job-popover has-sliding-hover" ref={popoverRef} role="menu">
+              <div
+                className="sidebar-job-popover has-sliding-hover"
+                id={menuId}
+                ref={popoverRef}
+                role="menu"
+              >
                 <SlidingMenuHoverIndicator containerRef={popoverRef} />
                 <button
                   className="sidebar-job-menu-item"
@@ -471,9 +488,12 @@ function UploadView({
   const [mountedViewer, setMountedViewer] = useState(job.viewer)
   const [isViewerClosing, setIsViewerClosing] = useState(false)
   const [previewStep, setPreviewStep] = useState(0)
+  const [isPreviewUserPaused, setIsPreviewUserPaused] = useState(false)
+  const [isPreviewHoldPaused, setIsPreviewHoldPaused] = useState(false)
   const [isPreviewDismissed, setIsPreviewDismissed] = useState(readPreviewDismissed)
   const showUploadEmpty = job.phase === "upload" && job.items.length === 0
   const showPreview = showUploadEmpty && !isPreviewDismissed
+  const isPreviewPaused = isPreviewUserPaused || isPreviewHoldPaused
   const showHeaderUploadActions = job.phase === "upload" && job.items.length > 0
 
   useEffect(() => {
@@ -487,14 +507,14 @@ function UploadView({
   }, [job.items.length])
 
   useEffect(() => {
-    if (!showPreview) return
+    if (!showPreview || isPreviewPaused) return
 
     const timer = window.setInterval(() => {
       setPreviewStep((step) => (step + 1) % PREVIEW_STEPS.length)
     }, PREVIEW_AUTO_ADVANCE_MS)
 
     return () => window.clearInterval(timer)
-  }, [showPreview, previewStep])
+  }, [showPreview, previewStep, isPreviewPaused])
 
   function dismissPreview() {
     markPreviewDismissed()
@@ -518,6 +538,32 @@ function UploadView({
   const canMarkComplete = reviewProgress.total > 0
     && reviewProgress.resolved === reviewProgress.total
   const isReviewComplete = Boolean(job.completedAt)
+  const [statusAnnouncement, setStatusAnnouncement] = useState("")
+  const prevPhaseRef = useRef(job.phase)
+  const prevCompletedRef = useRef(Boolean(job.completedAt))
+  const prevExportedRef = useRef(Boolean(job.exportedAt))
+
+  useEffect(() => {
+    const prevPhase = prevPhaseRef.current
+    const prevCompleted = prevCompletedRef.current
+    const prevExported = prevExportedRef.current
+    prevPhaseRef.current = job.phase
+    prevCompletedRef.current = Boolean(job.completedAt)
+    prevExportedRef.current = Boolean(job.exportedAt)
+
+    if (prevPhase === "reviewing" && job.phase === "results") {
+      setStatusAnnouncement("Tag extraction complete. Review results are ready.")
+      return
+    }
+    if (!prevCompleted && job.completedAt) {
+      setStatusAnnouncement("Review marked complete.")
+      return
+    }
+    if (!prevExported && job.exportedAt) {
+      setStatusAnnouncement("Export complete.")
+    }
+  }, [job.phase, job.completedAt, job.exportedAt])
+
   const extractionSummary = useMemo(
     () => (job.review ? getExtractionSummary(job.review, fallbackDocumentName) : null),
     [job.review, fallbackDocumentName],
@@ -531,9 +577,9 @@ function UploadView({
     [job.review, job.decisions, fallbackDocumentName],
   )
   const pageTitle = job.phase === "reviewing"
-    ? "Extracting tags..."
+    ? "Extracting tags…"
     : job.phase === "results"
-      ? (isReviewComplete ? "Review summary" : "Review results")
+      ? (isReviewComplete ? "Review summary" : "Review tags")
       : "Upload documents"
   const pageSubtitle = job.phase === "reviewing"
     ? null
@@ -543,7 +589,7 @@ function UploadView({
           Review completed for{" "}
           <span className="page-subtitle-emphasis">
             {extractionSummary.occurrences}{" "}
-            {extractionSummary.occurrences === 1 ? "tag occurrence" : "tag occurrences"}
+            {extractionSummary.occurrences === 1 ? "occurrence" : "occurrences"}
           </span>
           {" "}across{" "}
           <span className="page-subtitle-emphasis">
@@ -574,7 +620,7 @@ function UploadView({
           .
         </>
       ) : null)
-      : "Turn engineering drawings into searchable data with AI-assisted tag extraction."
+      : "Add P&IDs or PDFs, then extract tags for review."
 
   // Keep the viewer mounted through its closing animation, whether it was dismissed
   // directly or cleared by a tag decision.
@@ -833,10 +879,13 @@ function UploadView({
 
   return (
     <>
+      <div aria-live="polite" className="sr-only">
+        {statusAnnouncement}
+      </div>
       <header className="page-header">
         <div className="page-header-main">
           <div className="page-header-titles">
-            <h2 className={isExtracting ? "page-title-with-spinner" : undefined}>
+            <h1 className={isExtracting ? "page-title-with-spinner" : undefined}>
               {isExtracting && (
                 <LoaderCircle
                   aria-hidden="true"
@@ -846,7 +895,7 @@ function UploadView({
                 />
               )}
               {pageTitle}
-            </h2>
+            </h1>
             {isExtracting ? (
               <ExtractionStatusMessage
                 className="page-subtitle page-subtitle-extracting"
@@ -884,6 +933,7 @@ function UploadView({
         <>
           <input
             accept=".zip,application/zip,.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.png,.jpg,.jpeg"
+            aria-label="Choose files"
             className="sr-only"
             multiple
             onChange={(event) => {
@@ -893,9 +943,11 @@ function UploadView({
               }
             }}
             ref={fileInputRef}
+            tabIndex={-1}
             type="file"
           />
           <input
+            aria-label="Choose folder"
             className="sr-only"
             multiple
             onChange={(event) => {
@@ -908,6 +960,7 @@ function UploadView({
               folderInputRef.current = node
               if (node) node.setAttribute("webkitdirectory", "")
             }}
+            tabIndex={-1}
             type="file"
           />
         </>
@@ -917,7 +970,7 @@ function UploadView({
         <ReviewSummaryPanel rows={exportRows} tagGroups={tagGroups} />
       ) : job.phase === "results" && job.review ? (
         <>
-          <section className="review-results" aria-label="Review results">
+          <section className="review-results" aria-label="Review tags">
             <TagReviewPanel
               activeOccurrence={job.viewer}
               decisions={job.decisions}
@@ -940,7 +993,7 @@ function UploadView({
                   {reviewProgress.total === 1 ? "occurrence" : "occurrences"} reviewed
                 </>
               ) : (
-                "No occurrences to review"
+                "No tags left to review"
               )}
             </p>
             <Tooltip open={canMarkComplete ? false : undefined}>
@@ -978,7 +1031,15 @@ function UploadView({
             <section
               aria-label="Product preview"
               aria-roledescription="carousel"
-              className="upload-placeholder"
+              className={`upload-placeholder${isPreviewPaused ? " is-paused" : ""}`}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                  setIsPreviewHoldPaused(false)
+                }
+              }}
+              onFocus={() => setIsPreviewHoldPaused(true)}
+              onMouseEnter={() => setIsPreviewHoldPaused(true)}
+              onMouseLeave={() => setIsPreviewHoldPaused(false)}
             >
               <div className="upload-placeholder-frame">
                 <div aria-hidden="true" className="upload-placeholder-media">
@@ -993,20 +1054,44 @@ function UploadView({
                   ))}
                 </div>
                 <div className="upload-placeholder-content">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        aria-label="Close preview"
-                        className="upload-placeholder-close"
-                        onClick={dismissPreview}
-                        type="button"
-                      >
-                        <X aria-hidden="true" size={16} strokeWidth={1.9} />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Close preview</TooltipContent>
-                  </Tooltip>
-                  <div className="upload-placeholder-copy" key={previewStep}>
+                  <div className="upload-placeholder-toolbar">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          aria-label={isPreviewUserPaused ? "Play preview" : "Pause preview"}
+                          className="upload-placeholder-pause"
+                          onClick={() => setIsPreviewUserPaused((paused) => !paused)}
+                          type="button"
+                        >
+                          {isPreviewUserPaused ? (
+                            <Play aria-hidden="true" size={15} strokeWidth={1.9} />
+                          ) : (
+                            <Pause aria-hidden="true" size={15} strokeWidth={1.9} />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isPreviewUserPaused ? "Play" : "Pause"}</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          aria-label="Close preview"
+                          className="upload-placeholder-close"
+                          onClick={dismissPreview}
+                          type="button"
+                        >
+                          <X aria-hidden="true" size={16} strokeWidth={1.9} />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Close preview</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div
+                    aria-atomic="true"
+                    aria-live="polite"
+                    className="upload-placeholder-copy"
+                    key={previewStep}
+                  >
                     <h3>{PREVIEW_STEPS[previewStep].title}</h3>
                     <p>{PREVIEW_STEPS[previewStep].subtitle}</p>
                   </div>
@@ -1021,7 +1106,10 @@ function UploadView({
                         aria-selected={index === previewStep}
                         className={`upload-placeholder-dot${index === previewStep ? " is-active" : ""}`}
                         key={step.title}
-                        onClick={() => setPreviewStep(index)}
+                        onClick={() => {
+                          setPreviewStep(index)
+                          setIsPreviewUserPaused(true)
+                        }}
                         role="tab"
                         type="button"
                       />
@@ -1032,7 +1120,7 @@ function UploadView({
             </section>
           )}
           <section
-            aria-label="Upload engineering documents"
+            aria-label="Upload documents"
             className="upload-empty"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -1040,9 +1128,9 @@ function UploadView({
               <Upload size={28} strokeWidth={1.6} />
             </div>
             <div className="upload-empty-copy">
-              <h3>Upload engineering documents</h3>
+              <h3>Upload documents</h3>
               <p>
-                Drag and drop engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
+                Drag and drop drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract tags.
               </p>
             </div>
             <span className="upload-actions">
@@ -1093,8 +1181,16 @@ function UploadView({
                 <span className="upload-file-progress">
                   {item.status === "uploading" && (
                     <>
-                      <span className="job-date">{item.progress}%</span>
-                      <span className="upload-progress" aria-label={`Uploading ${item.progress}%`}>
+                      <span className="job-date" aria-hidden="true">{item.progress}%</span>
+                      <span
+                        aria-label={`Uploading ${item.displayName}`}
+                        aria-valuemax={100}
+                        aria-valuemin={0}
+                        aria-valuenow={item.progress}
+                        aria-valuetext={`${item.progress} percent`}
+                        className="upload-progress"
+                        role="progressbar"
+                      >
                         <span className="upload-progress-bar" style={{ width: `${item.progress}%` }} />
                       </span>
                     </>
@@ -1176,8 +1272,8 @@ function UploadView({
 
       {duplicatePrompt && (
         <ConfirmDialog
-          cancelLabel="No, skip"
-          confirmLabel="Yes, upload"
+          cancelLabel="Skip"
+          confirmLabel="Upload anyway"
           description={(
             <>
               A file named <strong>{duplicatePrompt.conflictName}</strong> is already in this review.
@@ -1208,6 +1304,7 @@ function SearchReviewJobs({
 }) {
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | JobSidebarStatus>("all")
+  const filterToolbarRef = useRef<HTMLDivElement>(null)
   const normalizedQuery = query.trim().toLocaleLowerCase()
   const matchingJobs = useMemo(() => {
     const listed = jobs.filter(isListedReviewJob)
@@ -1240,12 +1337,36 @@ function SearchReviewJobs({
     return counts
   }, [jobs])
 
+  const visibleFilters = JOB_STATUS_FILTERS.filter(
+    (filter) => filter.id === "all" || statusCounts[filter.id] > 0,
+  )
+
+  function handleFilterKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "Home" && event.key !== "End") {
+      return
+    }
+    const buttons = Array.from(
+      filterToolbarRef.current?.querySelectorAll<HTMLButtonElement>(".job-status-filter") ?? [],
+    )
+    if (buttons.length === 0) return
+    const currentIndex = buttons.findIndex((button) => button === document.activeElement)
+    if (currentIndex < 0) return
+
+    event.preventDefault()
+    let nextIndex = currentIndex
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % buttons.length
+    if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + buttons.length) % buttons.length
+    if (event.key === "Home") nextIndex = 0
+    if (event.key === "End") nextIndex = buttons.length - 1
+    buttons[nextIndex]?.focus()
+  }
+
   return (
     <>
       <header className="page-header search-page-header">
         <div className="page-header-main">
           <div className="page-header-titles">
-            <h2>Search review jobs</h2>
+            <h1>Search review jobs</h1>
             <p className="page-subtitle">Find and filter jobs by title, files, content, tags, or status.</p>
           </div>
         </div>
@@ -1262,16 +1383,24 @@ function SearchReviewJobs({
             value={query}
           />
         </div>
-        <div className="job-status-filters" aria-label="Filter by status" role="toolbar">
-          {JOB_STATUS_FILTERS.map((filter) => {
+        <div
+          aria-label="Filter by status"
+          className="job-status-filters"
+          onKeyDown={handleFilterKeyDown}
+          ref={filterToolbarRef}
+          role="toolbar"
+        >
+          {visibleFilters.map((filter, index) => {
             const count = statusCounts[filter.id]
-            if (filter.id !== "all" && count === 0) return null
+            const isActive = statusFilter === filter.id
+            const tabStop = isActive || (!visibleFilters.some((item) => item.id === statusFilter) && index === 0)
             return (
               <button
-                aria-pressed={statusFilter === filter.id}
-                className={`job-status-filter${statusFilter === filter.id ? " is-active" : ""}`}
+                aria-pressed={isActive}
+                className={`job-status-filter${isActive ? " is-active" : ""}`}
                 key={filter.id}
                 onClick={() => setStatusFilter(filter.id)}
+                tabIndex={tabStop ? 0 : -1}
                 type="button"
               >
                 {filter.label}
@@ -1448,7 +1577,7 @@ export function Version4Page() {
   return (
     <AppLayout
       className="version4"
-      sidebar={({ isCollapsed, onToggleCollapse }) => (
+      sidebar={({ isCollapsed, onToggleCollapse, sidebarPanelId }) => (
         <Sidebar
           activeJobId={activeJobId}
           isCollapsed={isCollapsed}
@@ -1459,13 +1588,14 @@ export function Version4Page() {
           onSearchReviewJobs={() => setActiveView("search")}
           onSelectJob={handleSelectJob}
           onToggleCollapse={onToggleCollapse}
+          sidebarPanelId={sidebarPanelId}
         />
       )}
     >
       <GridLayout className="upload-layout">
         {isHydrating || !activeJob ? (
           <section className="workspace-loading" aria-live="polite">
-            <h2>Loading review jobs…</h2>
+            <h1>Loading review jobs…</h1>
             <p>Restoring your locally saved sessions.</p>
           </section>
         ) : activeView === "search" ? (

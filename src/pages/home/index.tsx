@@ -45,7 +45,7 @@ const PREVIEW_STEPS = [
   },
   {
     title: "Validate and export",
-    subtitle: "Approve, reject, or flag tags, then export trusted results.",
+    subtitle: "Approve, reject, or mark tags that need review, then export results.",
     illustration: getPublicAssetUrl("illustrations/results.png"),
   },
 ] as const
@@ -523,9 +523,9 @@ function UploadView({
     [job.review, job.decisions, fallbackDocumentName],
   )
   const pageTitle = job.phase === "reviewing"
-    ? "Extracting tags..."
+    ? "Extracting tags…"
     : job.phase === "results"
-      ? (isReviewComplete ? "Review summary" : "Review results")
+      ? (isReviewComplete ? "Review summary" : "Review tags")
       : "Upload documents"
   const pageSubtitle = job.phase === "reviewing"
     ? "Identifying engineering tags and organizing them for review."
@@ -555,7 +555,7 @@ function UploadView({
           .
         </>
       ) : null)
-      : "Turn engineering drawings into searchable data with AI-assisted tag extraction."
+      : "Add P&IDs or PDFs, then extract tags for review."
 
   // Keep the viewer mounted through its closing animation, whether it was dismissed
   // directly or cleared by a tag decision.
@@ -922,7 +922,7 @@ function UploadView({
       {job.phase === "results" && job.review && isReviewComplete ? (
         <ReviewSummaryPanel rows={exportRows} tagGroups={tagGroups} />
       ) : job.phase === "results" && job.review ? (
-        <section className="review-results" aria-label="Review results">
+        <section className="review-results" aria-label="Review tags">
           <TagReviewPanel
             activeOccurrence={job.viewer}
             decisions={job.decisions}
@@ -1000,7 +1000,7 @@ function UploadView({
             </section>
           )}
           <section
-            aria-label="Upload engineering documents"
+            aria-label="Upload documents"
             className="upload-empty"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -1008,9 +1008,9 @@ function UploadView({
               <Upload size={28} strokeWidth={1.6} />
             </div>
             <div className="upload-empty-copy">
-              <h3>Upload engineering documents</h3>
+              <h3>Upload documents</h3>
               <p>
-                Drag and drop engineering drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract engineering tags.
+                Drag and drop drawings, P&amp;IDs, PDFs, folders, or ZIP archives to extract tags.
               </p>
             </div>
             <span className="upload-actions">
@@ -1148,8 +1148,8 @@ function UploadView({
 
       {duplicatePrompt && (
         <ConfirmDialog
-          cancelLabel="No, skip"
-          confirmLabel="Yes, upload"
+          cancelLabel="Skip"
+          confirmLabel="Upload anyway"
           description={(
             <>
               A file named <strong>{duplicatePrompt.conflictName}</strong> is already in this review.

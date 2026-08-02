@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Minus, Plus, Scan
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useModalFocus } from "@/hooks/use-modal-focus"
 import {
   getDocument,
   Util,
@@ -207,6 +208,14 @@ function centerHighlightInStage(stage: HTMLElement, highlight: HTMLElement) {
   })
 }
 
+function textItemsToReadableString(items: PdfTextItems) {
+  return items
+    .map((item) => ("str" in item ? item.str : ""))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 export function PdfViewerPanel({
   tag,
   documentName,
@@ -221,6 +230,8 @@ export function PdfViewerPanel({
   onPreviousMatch,
   onNextMatch,
 }: PdfViewerPanelProps) {
+  const panelRef = useRef<HTMLElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const pageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -235,6 +246,7 @@ export function PdfViewerPanel({
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 })
   const [stageWidth, setStageWidth] = useState(0)
   const [highlights, setHighlights] = useState<Highlight[]>([])
+  const [pageText, setPageText] = useState("")
   const [zoom, setZoom] = useState(AUTO_ZOOM)
   const [highlightsVisible, setHighlightsVisible] = useState(readHighlightsVisible)
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH)
@@ -256,6 +268,14 @@ export function PdfViewerPanel({
   const canZoomOut = zoom > MIN_ZOOM
   const canZoomIn = zoom < MAX_ZOOM
   const showMinimap = status === "ready" && !showSkeleton && pageSize.width > 0 && pageSize.height > 0
+
+  useModalFocus({
+    containerRef: panelRef,
+    initialFocusRef: closeRef,
+    onEscape: onClose,
+    enableInert: false,
+    enabled: !isClosing,
+  })
 
   function scrollStageToMinimapPoint(clientX: number, clientY: number, smooth = false) {
     const stage = stageRef.current
@@ -311,11 +331,10 @@ export function PdfViewerPanel({
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.defaultPrevented) return
+      const panel = panelRef.current
+      if (!panel?.contains(document.activeElement)) return
       if (event.target instanceof Element && event.target.closest(".pdf-viewer-resize")) return
-      if (event.key === "Escape") {
-        onClose()
-        return
-      }
+
       if (event.key === "ArrowLeft" && canGoPrevious) {
         event.preventDefault()
         onPreviousMatch()
@@ -340,7 +359,7 @@ export function PdfViewerPanel({
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [canGoNext, canGoPrevious, onClose, onNextMatch, onPreviousMatch])
+  }, [canGoNext, canGoPrevious, onNextMatch, onPreviousMatch])
 
   useEffect(() => {
     const stage = stageRef.current
@@ -452,6 +471,7 @@ export function PdfViewerPanel({
     setIsPageRendering(true)
     setPdfDocument(null)
     setHighlights([])
+    setPageText("")
     textItemsRef.current = []
     viewportRef.current = null
 
@@ -520,6 +540,7 @@ export function PdfViewerPanel({
 
         textItemsRef.current = content.items
         viewportRef.current = viewport
+        setPageText(textItemsToReadableString(content.items))
         setHighlights(findHighlights(content.items, viewport, tag))
         setIsPageRendering(false)
       } catch (error) {
@@ -619,8 +640,10 @@ export function PdfViewerPanel({
 
   return (
     <aside
-      aria-label={`${tag} occurrences in ${documentName}`}
+      aria-keyshortcuts="Escape ArrowLeft ArrowRight + - 0"
+      aria-label={`${tag} occurrences in ${documentName}. Keyboard: Escape closes, arrows change match, plus and minus zoom, zero resets zoom.`}
       className={`pdf-viewer-panel${isClosing ? " is-closing" : ""}${isResizing ? " is-resizing" : ""}${highlightsVisible ? "" : " highlights-off"}`}
+      ref={panelRef}
     >
       <div
         aria-label="Resize document viewer"
@@ -674,7 +697,13 @@ export function PdfViewerPanel({
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button aria-label="Close viewer" className="pdf-viewer-close" onClick={onClose} type="button">
+            <button
+              aria-label="Close viewer"
+              className="pdf-viewer-close"
+              onClick={onClose}
+              ref={closeRef}
+              type="button"
+            >
               <X aria-hidden="true" size={16} strokeWidth={1.9} />
             </button>
           </TooltipTrigger>
@@ -721,23 +750,23 @@ export function PdfViewerPanel({
           </TooltipContent>
         </Tooltip>
         <button
-          aria-label="Fit page width"
+          aria-label="Fit width"
           className="pdf-viewer-zoom-button pdf-viewer-zoom-fit"
           disabled={status !== "ready"}
           onClick={() => setZoom(1)}
           type="button"
         >
-          Fit
+          Fit width
         </button>
         <button
-          aria-label="Focus occurrence at 225%"
+          aria-label="Focus tag"
           className="pdf-viewer-zoom-button pdf-viewer-zoom-focus"
           disabled={status !== "ready"}
           onClick={() => setZoom(AUTO_ZOOM)}
           type="button"
         >
           <ScanSearch aria-hidden="true" size={14} strokeWidth={1.9} />
-          Focus
+          Focus tag
         </button>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -779,10 +808,19 @@ export function PdfViewerPanel({
                 <div aria-hidden="true" className="pdf-viewer-skeleton" />
               )}
               <canvas
-                aria-hidden={showSkeleton}
+                aria-hidden="true"
                 className={`pdf-viewer-canvas${showSkeleton ? " is-pending" : ""}`}
                 ref={canvasRef}
               />
+              {!showSkeleton && pageText ? (
+                <div className="sr-only" aria-live="polite">
+                  {`Page ${currentPage} of ${documentName}. Tag ${tag}: match ${matchIndex} of ${matchTotal}.`}
+                  {highlights.length > 0
+                    ? ` ${highlights.length} highlight${highlights.length === 1 ? "" : "s"} on this page.`
+                    : " No highlights on this page."}
+                  {` Page text: ${pageText}`}
+                </div>
+              ) : null}
               {!showSkeleton && highlights.map((highlight, index) => (
                 <span
                   className={`pdf-viewer-highlight${index === 0 ? " is-active" : ""}`}

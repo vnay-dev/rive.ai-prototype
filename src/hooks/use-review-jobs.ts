@@ -12,6 +12,7 @@ import {
   persistMeta,
   persistWorkspace,
   sortJobs,
+  toUserFacingReviewError,
   type ReviewViewerTarget,
   type RuntimeReviewJob,
   type RuntimeUploadItem,
@@ -228,7 +229,7 @@ export function useReviewJobs() {
         review: null,
         reviewSource: null,
         extractionProgress: null,
-        errorMessage: error instanceof Error ? error.message : "Review failed. Try again.",
+        errorMessage: toUserFacingReviewError(error),
       }))
     } finally {
       reviewInFlightRef.current.delete(jobId)
