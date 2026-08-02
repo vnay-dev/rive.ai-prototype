@@ -1045,14 +1045,24 @@ function UploadView({
               <TooltipTrigger asChild>
                 <span className="review-complete-tooltip-target">
                   <button
-                    aria-label={`Mark as complete — ${reviewProgress.resolved} of ${reviewProgress.total} occurrences reviewed`}
+                    aria-label={
+                      canMarkComplete
+                        ? "Mark as complete"
+                        : `Mark as complete unavailable — ${reviewProgress.resolved} of ${reviewProgress.total} occurrences reviewed`
+                    }
                     className="primary-button"
                     disabled={!canMarkComplete}
                     onClick={onMarkComplete}
                     type="button"
                   >
-                    <Check aria-hidden="true" size={16} strokeWidth={2.4} />
-                    Mark as complete
+                    {canMarkComplete ? (
+                      <>
+                        <Check aria-hidden="true" size={16} strokeWidth={2.4} />
+                        Mark as complete
+                      </>
+                    ) : (
+                      "Mark as complete"
+                    )}
                   </button>
                 </span>
               </TooltipTrigger>

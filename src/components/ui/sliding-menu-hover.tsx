@@ -11,6 +11,7 @@ type IndicatorState = {
   height: number
   visible: boolean
   animated: boolean
+  danger: boolean
 }
 
 /** Sliding hover slab that tracks menu items inside a positioned popover. */
@@ -24,6 +25,7 @@ export function SlidingMenuHoverIndicator({
     height: 0,
     visible: false,
     animated: false,
+    danger: false,
   })
 
   useEffect(() => {
@@ -32,7 +34,11 @@ export function SlidingMenuHoverIndicator({
 
     function moveTo(item: HTMLElement | null) {
       if (!item) {
-        setIndicator((current) => (current.visible ? { ...current, visible: false } : current))
+        setIndicator((current) => (
+          current.visible
+            ? { ...current, visible: false, danger: false }
+            : current
+        ))
         return
       }
 
@@ -40,11 +46,13 @@ export function SlidingMenuHoverIndicator({
       const itemRect = item.getBoundingClientRect()
       const top = itemRect.top - rootRect.top
       const height = itemRect.height
+      const danger = item.classList.contains("is-danger")
       setIndicator((current) => ({
         top,
         height,
         visible: true,
         animated: current.visible,
+        danger,
       }))
     }
 
@@ -93,6 +101,7 @@ export function SlidingMenuHoverIndicator({
         "menu-hover-slab",
         indicator.visible ? "is-visible" : "",
         indicator.animated ? "is-animated" : "",
+        indicator.danger ? "is-danger" : "",
         className,
       ].filter(Boolean).join(" ")}
       style={{
