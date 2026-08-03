@@ -322,6 +322,11 @@ export function isResolvedTagDecision(decision: TagDecision | undefined) {
   return decision === "approved" || decision === "rejected"
 }
 
+/** Any decision counts as reviewed (approve, reject, or needs-review). */
+export function isDecidedTagDecision(decision: TagDecision | undefined) {
+  return decision === "approved" || decision === "rejected" || decision === "needs-review"
+}
+
 export function getResolvedReviewProgress(
   job: Pick<RuntimeReviewJob, "review" | "decisions">,
   fallbackDocument = "Uploaded document",
@@ -339,6 +344,26 @@ export function getResolvedReviewProgress(
   )).length
 
   return { resolved, total: occurrenceKeys.size }
+}
+
+/** Progress where any decision counts — used for auto-complete and mid-session export UX. */
+export function getDecidedReviewProgress(
+  job: Pick<RuntimeReviewJob, "review" | "decisions">,
+  fallbackDocument = "Uploaded document",
+) {
+  const occurrenceKeys = new Set<string>()
+  for (const entry of job.review ?? []) {
+    const tag = entry.tag.trim()
+    if (!tag) continue
+    const document = entry.document?.trim() || fallbackDocument
+    occurrenceKeys.add(occurrenceDecisionKey(tag, document, entry.page))
+  }
+
+  const decided = [...occurrenceKeys].filter((key) => (
+    isDecidedTagDecision(job.decisions[key])
+  )).length
+
+  return { decided, total: occurrenceKeys.size }
 }
 
 export function getJobSidebarStatus(job: RuntimeReviewJob): JobSidebarStatus {

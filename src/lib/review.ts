@@ -141,3 +141,85 @@ export function groupExtractedTags(tags: ReviewResult, fallbackDocument: string)
     }
   })
 }
+
+function documentBaseName(name: string) {
+  const normalized = name.trim().replace(/\\/g, "/")
+  const segments = normalized.split("/")
+  return segments[segments.length - 1] || normalized
+}
+
+/** Remap API document names onto the exact uploaded document names so PDF lookup succeeds. */
+export function alignReviewDocuments(
+  review: ReviewResult,
+  documentNames: string[],
+): ReviewResult {
+  if (documentNames.length === 0) return review
+
+  const byLower = new Map(documentNames.map((name) => [name.toLowerCase(), name]))
+  const byBase = new Map(
+    documentNames.map((name) => [documentBaseName(name).toLowerCase(), name]),
+  )
+
+  return review.map((entry) => {
+    const raw = entry.document?.trim()
+    if (!raw) {
+      return { ...entry, document: documentNames[0] }
+    }
+
+    const exact = byLower.get(raw.toLowerCase())
+    if (exact) return { ...entry, document: exact }
+
+    const base = byBase.get(documentBaseName(raw).toLowerCase())
+    if (base) return { ...entry, document: base }
+
+    const lowered = raw.toLowerCase()
+    const fuzzy = documentNames.find((name) => {
+      const candidate = name.toLowerCase()
+      return candidate.includes(lowered) || lowered.includes(candidate)
+    })
+
+    return { ...entry, document: fuzzy ?? documentNames[0] }
+  })
+}
+
+/** Pull engineering-tag-like tokens from extracted page text (highlightable fallback). */
+export function extractLocalReviewFromDocuments(
+  items: ReviewDocumentInput[],
+): ReviewResult {
+  // Common P&ID style: PSV-4015A, HBG0110, XV-200, FT 101
+  const tagPattern = /\b[A-Z]{1,8}[\s\-/]?[A-Z]{0,4}\d{2,6}[A-Z]?\d*\b/gi
+  const results: ReviewResult = []
+  const seen = new Set<string>()
+
+  for (const item of items) {
+    for (const page of item.pages) {
+      const matches = page.text.match(tagPattern) ?? []
+      for (const raw of matches) {
+        const tag = raw.replace(/\s+/g, "").toUpperCase()
+        if (tag.length < 4) continue
+        const key = `${tag}::${item.name}::${page.page}`
+        if (seen.has(key)) {
+          const existing = results.find((entry) => (
+            entry.tag === tag
+            && entry.document === item.name
+            && entry.page === page.page
+          ))
+          if (existing) {
+            existing.occurrences = (existing.occurrences ?? 1) + 1
+          }
+          continue
+        }
+        seen.add(key)
+        results.push({
+          tag,
+          document: item.name,
+          page: page.page,
+          occurrences: 1,
+          confidence: 0.72,
+        })
+      }
+    }
+  }
+
+  return results
+}

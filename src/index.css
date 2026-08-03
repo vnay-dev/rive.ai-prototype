@@ -921,7 +921,7 @@
 
   .secondary-button {
     color: var(--foreground);
-    background: var(--background);
+    background: transparent;
     border: 1px solid var(--border);
   }
 
@@ -2280,8 +2280,8 @@
     line-height: 1.5;
   }
 
-  /* Version 4 — visual design overrides */
-  .app-shell.version4 {
+  /* Version 4 + 5 — visual design overrides (shared until v5 diverges) */
+  .app-shell:is(.version4, .version5) {
     --sidebar: color-mix(in srgb, #13439a 5%, var(--soft-white));
     --sidebar-accent: color-mix(in srgb, #13439a 9%, var(--soft-white));
     --primary: #13439a;
@@ -2300,90 +2300,90 @@
     color: #1c1c1c;
   }
 
-  .app-shell.version4 .app-sidebar {
+  .app-shell:is(.version4, .version5) .app-sidebar {
     border-right: none;
   }
 
-  .app-shell.version4 .app-sidebar::-webkit-scrollbar-thumb,
-  .app-shell.version4 .app-sidebar *::-webkit-scrollbar-thumb,
-  .app-shell.version4 .tag-review::-webkit-scrollbar-thumb,
-  .app-shell.version4 .tag-review *::-webkit-scrollbar-thumb {
+  .app-shell:is(.version4, .version5) .app-sidebar::-webkit-scrollbar-thumb,
+  .app-shell:is(.version4, .version5) .app-sidebar *::-webkit-scrollbar-thumb,
+  .app-shell:is(.version4, .version5) .tag-review::-webkit-scrollbar-thumb,
+  .app-shell:is(.version4, .version5) .tag-review *::-webkit-scrollbar-thumb {
     background: #cdd9ea !important;
     border-radius: 999px;
   }
 
-  .app-shell.version4 .app-sidebar::-webkit-scrollbar-thumb:hover,
-  .app-shell.version4 .app-sidebar *::-webkit-scrollbar-thumb:hover,
-  .app-shell.version4 .tag-review::-webkit-scrollbar-thumb:hover,
-  .app-shell.version4 .tag-review *::-webkit-scrollbar-thumb:hover,
-  .app-shell.version4 .app-sidebar::-webkit-scrollbar-thumb:active,
-  .app-shell.version4 .app-sidebar *::-webkit-scrollbar-thumb:active,
-  .app-shell.version4 .tag-review::-webkit-scrollbar-thumb:active,
-  .app-shell.version4 .tag-review *::-webkit-scrollbar-thumb:active {
+  .app-shell:is(.version4, .version5) .app-sidebar::-webkit-scrollbar-thumb:hover,
+  .app-shell:is(.version4, .version5) .app-sidebar *::-webkit-scrollbar-thumb:hover,
+  .app-shell:is(.version4, .version5) .tag-review::-webkit-scrollbar-thumb:hover,
+  .app-shell:is(.version4, .version5) .tag-review *::-webkit-scrollbar-thumb:hover,
+  .app-shell:is(.version4, .version5) .app-sidebar::-webkit-scrollbar-thumb:active,
+  .app-shell:is(.version4, .version5) .app-sidebar *::-webkit-scrollbar-thumb:active,
+  .app-shell:is(.version4, .version5) .tag-review::-webkit-scrollbar-thumb:active,
+  .app-shell:is(.version4, .version5) .tag-review *::-webkit-scrollbar-thumb:active {
     background: #aebfd8 !important;
   }
 
-  .app-shell.version4 .app-sidebar::-webkit-scrollbar,
-  .app-shell.version4 .app-sidebar *::-webkit-scrollbar,
-  .app-shell.version4 .tag-review::-webkit-scrollbar,
-  .app-shell.version4 .tag-review *::-webkit-scrollbar {
+  .app-shell:is(.version4, .version5) .app-sidebar::-webkit-scrollbar,
+  .app-shell:is(.version4, .version5) .app-sidebar *::-webkit-scrollbar,
+  .app-shell:is(.version4, .version5) .tag-review::-webkit-scrollbar,
+  .app-shell:is(.version4, .version5) .tag-review *::-webkit-scrollbar {
     width: 4px;
     height: 4px;
   }
 
-  .app-shell.version4 .app-sidebar::-webkit-scrollbar-button,
-  .app-shell.version4 .app-sidebar *::-webkit-scrollbar-button,
-  .app-shell.version4 .tag-review::-webkit-scrollbar-button,
-  .app-shell.version4 .tag-review *::-webkit-scrollbar-button {
+  .app-shell:is(.version4, .version5) .app-sidebar::-webkit-scrollbar-button,
+  .app-shell:is(.version4, .version5) .app-sidebar *::-webkit-scrollbar-button,
+  .app-shell:is(.version4, .version5) .tag-review::-webkit-scrollbar-button,
+  .app-shell:is(.version4, .version5) .tag-review *::-webkit-scrollbar-button {
     display: none;
     width: 0;
     height: 0;
   }
 
-  .app-shell.version4 .nav-link-icon,
-  .app-shell.version4 .sidebar-collapse,
-  .app-shell.version4 .sidebar-collapse:hover,
-  .app-shell.version4 .sidebar-brand-toggle,
-  .app-shell.version4 .sidebar-brand-toggle:hover,
-  .app-shell.version4 .sidebar-brand-toggle:focus-visible,
-  .app-shell.version4 .sidebar-brand-expand-icon,
-  .app-shell.version4 .sidebar-job-icon,
-  .app-shell.version4 .sidebar-job-icon.is-draft,
-  .app-shell.version4 .sidebar-job-icon.is-processing,
-  .app-shell.version4 .sidebar-job-icon.is-ready,
-  .app-shell.version4 .sidebar-job-icon.is-completed {
+  .app-shell:is(.version4, .version5) .nav-link-icon,
+  .app-shell:is(.version4, .version5) .sidebar-collapse,
+  .app-shell:is(.version4, .version5) .sidebar-collapse:hover,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle:hover,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle:focus-visible,
+  .app-shell:is(.version4, .version5) .sidebar-brand-expand-icon,
+  .app-shell:is(.version4, .version5) .sidebar-job-icon,
+  .app-shell:is(.version4, .version5) .sidebar-job-icon.is-draft,
+  .app-shell:is(.version4, .version5) .sidebar-job-icon.is-processing,
+  .app-shell:is(.version4, .version5) .sidebar-job-icon.is-ready,
+  .app-shell:is(.version4, .version5) .sidebar-job-icon.is-completed {
     color: inherit;
   }
 
-  .app-shell.version4 .sidebar-collapse,
-  .app-shell.version4 .sidebar-collapse:hover,
-  .app-shell.version4 .sidebar-brand-toggle,
-  .app-shell.version4 .sidebar-brand-toggle:hover,
-  .app-shell.version4 .sidebar-brand-toggle:focus-visible {
+  .app-shell:is(.version4, .version5) .sidebar-collapse,
+  .app-shell:is(.version4, .version5) .sidebar-collapse:hover,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle:hover,
+  .app-shell:is(.version4, .version5) .sidebar-brand-toggle:focus-visible {
     color: var(--sidebar-foreground);
   }
 
-  .app-shell.version4 .sidebar-label,
-  .app-shell.version4 .sidebar-job-subgroup-toggle,
-  .app-shell.version4 .sidebar-job-subgroup-toggle:hover {
+  .app-shell:is(.version4, .version5) .sidebar-label,
+  .app-shell:is(.version4, .version5) .sidebar-job-subgroup-toggle,
+  .app-shell:is(.version4, .version5) .sidebar-job-subgroup-toggle:hover {
     color: var(--sidebar-foreground);
   }
 
-  .app-shell.version4 .upload-extract-footer {
+  .app-shell:is(.version4, .version5) .upload-extract-footer {
     border-top: none;
     background: var(--primary);
     box-shadow: none;
   }
 
-  .app-shell.version4 .upload-extract-footer-count {
+  .app-shell:is(.version4, .version5) .upload-extract-footer-count {
     color: color-mix(in srgb, var(--soft-white) 92%, transparent);
   }
 
-  .app-shell.version4 .review-complete-footer-progress .ticker-number {
+  .app-shell:is(.version4, .version5) .review-complete-footer-progress .ticker-number {
     color: var(--soft-white);
   }
 
-  .app-shell.version4 .upload-extract-footer-status {
+  .app-shell:is(.version4, .version5) .upload-extract-footer-status {
     background-image: linear-gradient(
       90deg,
       color-mix(in srgb, var(--soft-white) 50%, transparent) 0%,
@@ -2395,22 +2395,22 @@
     color: color-mix(in srgb, var(--soft-white) 92%, transparent);
   }
 
-  .app-shell.version4 .upload-extract-footer .primary-button {
+  .app-shell:is(.version4, .version5) .upload-extract-footer .primary-button {
     color: #13439a;
     background: var(--soft-white);
   }
 
-  .app-shell.version4 .upload-extract-footer .primary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-extract-footer .primary-button:hover:not(:disabled) {
     background: color-mix(in srgb, var(--soft-white) 90%, #13439a);
     color: #13439a;
   }
 
-  .app-shell.version4 .upload-extract-footer .primary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-extract-footer .primary-button:active:not(:disabled) {
     background: color-mix(in srgb, var(--soft-white) 82%, #13439a);
     color: #13439a;
   }
 
-  .app-shell.version4 .upload-extract-footer .primary-button:disabled {
+  .app-shell:is(.version4, .version5) .upload-extract-footer .primary-button:disabled {
     color: color-mix(in srgb, var(--soft-white) 70%, transparent);
     background: color-mix(in srgb, var(--soft-white) 12%, transparent);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft-white) 28%, transparent);
@@ -2418,120 +2418,120 @@
   }
 
   /* Separate the title/subtitle/CTA header group from page content */
-  .app-shell.version4 .content-grid > .page-header {
+  .app-shell:is(.version4, .version5) .content-grid > .page-header {
     margin-bottom: 16px;
   }
 
   /* Space between content blocks (upload ↔ files, stats ↔ findings, etc.) */
-  .app-shell.version4 .content-grid.upload-layout {
+  .app-shell:is(.version4, .version5) .content-grid.upload-layout {
     gap: 32px;
   }
 
-  .app-shell.version4 .review-summary {
+  .app-shell:is(.version4, .version5) .review-summary {
     gap: 28px;
     margin-top: 0;
     --border: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .review-summary-table th {
+  .app-shell:is(.version4, .version5) .review-summary-table th {
     background: var(--sidebar);
   }
 
-  .app-shell.version4 .review-results {
+  .app-shell:is(.version4, .version5) .review-results {
     margin-top: 0;
   }
 
-  .app-shell.version4 .upload-placeholder-frame {
+  .app-shell:is(.version4, .version5) .upload-placeholder-frame {
     border-color: color-mix(in srgb, #13439a 14%, var(--soft-white));
     box-shadow: 0 1px 2px color-mix(in srgb, #13439a 8%, transparent);
   }
 
-  .app-shell.version4 .upload-placeholder-dot {
+  .app-shell:is(.version4, .version5) .upload-placeholder-dot {
     background: color-mix(in srgb, #13439a 22%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-placeholder-dot:hover {
+  .app-shell:is(.version4, .version5) .upload-placeholder-dot:hover {
     background: color-mix(in srgb, #13439a 34%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-placeholder-dot.is-active {
+  .app-shell:is(.version4, .version5) .upload-placeholder-dot.is-active {
     background: color-mix(in srgb, #13439a 18%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-placeholder-dot.is-active::after {
+  .app-shell:is(.version4, .version5) .upload-placeholder-dot.is-active::after {
     background: #13439a;
   }
 
-  .app-shell.version4 .upload-empty {
+  .app-shell:is(.version4, .version5) .upload-empty {
     border: 1.5px dashed color-mix(in srgb, #13439a 16%, var(--soft-white));
     background: transparent;
     transition: border-color .15s ease, background .15s ease;
   }
 
-  .app-shell.version4 .upload-empty:hover {
+  .app-shell:is(.version4, .version5) .upload-empty:hover {
     border-color: color-mix(in srgb, #13439a 26%, var(--soft-white));
     background: color-mix(in srgb, #13439a 2.5%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-start.is-dragging .upload-empty,
-  .app-shell.version4 .upload-empty.is-dragging {
+  .app-shell:is(.version4, .version5) .upload-start.is-dragging .upload-empty,
+  .app-shell:is(.version4, .version5) .upload-empty.is-dragging {
     border-color: color-mix(in srgb, #13439a 40%, var(--soft-white));
     background: color-mix(in srgb, #13439a 3.5%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-file-list {
+  .app-shell:is(.version4, .version5) .upload-file-list {
     --border: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .upload-file-list ul {
+  .app-shell:is(.version4, .version5) .upload-file-list ul {
     border-color: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .job-search {
+  .app-shell:is(.version4, .version5) .job-search {
     --border: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .job-search-result {
+  .app-shell:is(.version4, .version5) .job-search-result {
     border-color: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .job-search-tags span {
+  .app-shell:is(.version4, .version5) .job-search-tags span {
     color: color-mix(in srgb, #13439a 62%, #1c1c1c);
     background: color-mix(in srgb, #13439a 11%, var(--soft-white));
   }
 
-  .app-shell.version4 .job-status-filter.is-active {
+  .app-shell:is(.version4, .version5) .job-status-filter.is-active {
     color: color-mix(in srgb, #13439a 68%, #1c1c1c);
     border-color: color-mix(in srgb, #13439a 36%, var(--soft-white));
     background: color-mix(in srgb, #13439a 11%, var(--soft-white));
   }
 
-  .app-shell.version4 .job-search-field:focus-within {
+  .app-shell:is(.version4, .version5) .job-search-field:focus-within:not(.app-header-search) {
     border-color: color-mix(in srgb, #13439a 28%, var(--soft-white));
     outline: 1px solid color-mix(in srgb, #13439a 22%, var(--soft-white));
     outline-offset: 1px;
   }
 
-  .app-shell.version4 .tag-review-nav {
+  .app-shell:is(.version4, .version5) .tag-review-nav {
     background: var(--sidebar);
   }
 
-  .app-shell.version4 .tag-review-document-header {
+  .app-shell:is(.version4, .version5) .tag-review-document-header {
     background: var(--sidebar);
   }
 
-  .app-shell.version4 .tag-review {
+  .app-shell:is(.version4, .version5) .tag-review {
     --border: color-mix(in srgb, #13439a 14%, var(--soft-white));
   }
 
-  .app-shell.version4 .tag-review-document.is-active {
+  .app-shell:is(.version4, .version5) .tag-review-document.is-active {
     border-color: color-mix(in srgb, #13439a 28%, var(--soft-white));
   }
 
-  .app-shell.version4 .primary-button,
-  .app-shell.version4 .secondary-button,
-  .app-shell.version4 .tertiary-button,
-  .app-shell.version4 .danger-button {
+  .app-shell:is(.version4, .version5) .primary-button,
+  .app-shell:is(.version4, .version5) .secondary-button,
+  .app-shell:is(.version4, .version5) .tertiary-button,
+  .app-shell:is(.version4, .version5) .danger-button {
     transition:
       background-color .15s ease,
       border-color .15s ease,
@@ -2539,133 +2539,134 @@
       box-shadow .15s ease;
   }
 
-  .app-shell.version4 .primary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .primary-button:hover:not(:disabled) {
     background: color-mix(in srgb, #13439a 88%, #1c1c1c);
   }
 
-  .app-shell.version4 .primary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .primary-button:active:not(:disabled) {
     background: color-mix(in srgb, #13439a 76%, #1c1c1c);
   }
 
-  .app-shell.version4 .review-complete-button.is-ready:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .review-complete-button.is-ready:hover:not(:disabled) {
     background: color-mix(in srgb, #147244 88%, #1c1c1c);
   }
 
-  .app-shell.version4 .review-complete-button.is-ready:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .review-complete-button.is-ready:active:not(:disabled) {
     background: color-mix(in srgb, #147244 76%, #1c1c1c);
   }
 
-  .app-shell.version4 .secondary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .secondary-button:hover:not(:disabled) {
     border-color: color-mix(in srgb, #1c1c1c 28%, var(--border));
+    background: color-mix(in srgb, #1c1c1c 3.5%, transparent);
   }
 
-  .app-shell.version4 .secondary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .secondary-button:active:not(:disabled) {
     border-color: color-mix(in srgb, #1c1c1c 42%, var(--border));
-    background: color-mix(in srgb, #1c1c1c 3.5%, var(--background));
+    background: color-mix(in srgb, #1c1c1c 6%, transparent);
   }
 
-  .app-shell.version4 .tertiary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tertiary-button:hover:not(:disabled) {
     color: #1c1c1c;
     background: color-mix(in srgb, #1c1c1c 5%, transparent);
   }
 
-  .app-shell.version4 .tertiary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tertiary-button:active:not(:disabled) {
     background: color-mix(in srgb, #1c1c1c 9%, transparent);
   }
 
-  .app-shell.version4 .tag-occurrence-view.tertiary-button:hover:not(:disabled),
-  .app-shell.version4 .tag-occurrence-view.tertiary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-occurrence-view.tertiary-button:hover:not(:disabled),
+  .app-shell:is(.version4, .version5) .tag-occurrence-view.tertiary-button:active:not(:disabled) {
     background: transparent;
   }
 
-  .app-shell.version4 .tag-occurrence-view.tertiary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-occurrence-view.tertiary-button:hover:not(:disabled) {
     color: #1c1c1c;
   }
 
-  .app-shell.version4 .tag-occurrence-view.tertiary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-occurrence-view.tertiary-button:active:not(:disabled) {
     color: #000000;
   }
 
-  .app-shell.version4 .danger-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .danger-button:hover:not(:disabled) {
     background: color-mix(in srgb, var(--destructive) 88%, #1c1c1c);
   }
 
-  .app-shell.version4 .danger-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .danger-button:active:not(:disabled) {
     background: color-mix(in srgb, var(--destructive) 76%, #1c1c1c);
   }
 
-  .app-shell.version4 .upload-file-list .job-row:hover {
+  .app-shell:is(.version4, .version5) .upload-file-list .job-row:hover {
     background: transparent;
   }
 
-  .app-shell.version4 .upload-actions .primary-button {
+  .app-shell:is(.version4, .version5) .upload-actions .primary-button {
     background: #13439a;
     color: var(--soft-white);
   }
 
-  .app-shell.version4 .upload-actions .primary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-actions .primary-button:hover:not(:disabled) {
     background: color-mix(in srgb, #13439a 88%, #1c1c1c);
   }
 
-  .app-shell.version4 .upload-actions .primary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-actions .primary-button:active:not(:disabled) {
     background: color-mix(in srgb, #13439a 76%, #1c1c1c);
   }
 
-  .app-shell.version4 .upload-actions .secondary-button {
+  .app-shell:is(.version4, .version5) .upload-actions .secondary-button {
     color: #13439a;
     border-color: color-mix(in srgb, #13439a 32%, var(--soft-white));
-    background: var(--soft-white);
+    background: transparent;
   }
 
-  .app-shell.version4 .upload-actions .secondary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-actions .secondary-button:hover:not(:disabled) {
     color: #13439a;
     border-color: color-mix(in srgb, #13439a 48%, var(--soft-white));
-    background: color-mix(in srgb, #13439a 4%, var(--soft-white));
+    background: color-mix(in srgb, #13439a 4%, transparent);
   }
 
-  .app-shell.version4 .upload-actions .secondary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .upload-actions .secondary-button:active:not(:disabled) {
     color: #13439a;
     border-color: color-mix(in srgb, #13439a 58%, var(--soft-white));
-    background: color-mix(in srgb, #13439a 7%, var(--soft-white));
+    background: color-mix(in srgb, #13439a 7%, transparent);
   }
 
   /* Match Choose files look/feel on occurrence Approve (behavior/aesthetics only). */
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button {
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button {
     background: #000b20;
     color: var(--soft-white);
     padding: 8px 12px;
     font-size: 13px;
   }
 
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button:hover:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button:hover:not(:disabled) {
     background: color-mix(in srgb, #000b20 86%, var(--soft-white));
   }
 
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button:active:not(:disabled) {
     background: color-mix(in srgb, #000b20 94%, var(--soft-white));
   }
 
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button.is-approved {
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button.is-approved {
     color: #147244;
     background: #daf5e6;
   }
 
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button.is-approved:hover:not(:disabled),
-  .app-shell.version4 .tag-review-occurrence-actions .primary-button.is-approved:active:not(:disabled) {
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button.is-approved:hover:not(:disabled),
+  .app-shell:is(.version4, .version5) .tag-review-occurrence-actions .primary-button.is-approved:active:not(:disabled) {
     color: #147244;
     background: #daf5e6;
   }
 
-  .app-shell.version4 .sidebar-job.is-active {
+  .app-shell:is(.version4, .version5) .sidebar-job.is-active {
     background: transparent;
     box-shadow: none;
   }
 
-  .app-shell.version4 .sidebar-job-list {
+  .app-shell:is(.version4, .version5) .sidebar-job-list {
     position: relative;
   }
 
-  .app-shell.version4 .sidebar-job-active-indicator {
+  .app-shell:is(.version4, .version5) .sidebar-job-active-indicator {
     position: absolute;
     top: 0;
     right: 0;
@@ -2679,7 +2680,7 @@
     will-change: transform, height;
   }
 
-  .app-shell.version4 .tag-review-nav .sidebar-job-active-indicator {
+  .app-shell:is(.version4, .version5) .tag-review-nav .sidebar-job-active-indicator {
     right: 10px;
     left: 10px;
     background: var(--soft-white);
@@ -2688,42 +2689,42 @@
       0 1px 2px color-mix(in srgb, #13439a 8%, transparent);
   }
 
-  .app-shell.version4 .sidebar-job-active-indicator.is-visible {
+  .app-shell:is(.version4, .version5) .sidebar-job-active-indicator.is-visible {
     opacity: 1;
   }
 
-  .app-shell.version4 .sidebar-job-active-indicator.is-animated {
+  .app-shell:is(.version4, .version5) .sidebar-job-active-indicator.is-animated {
     transition:
       transform .28s cubic-bezier(.22, 1, .36, 1),
       height .28s cubic-bezier(.22, 1, .36, 1),
       opacity .18s ease;
   }
 
-  .app-shell.version4 .sidebar-job {
+  .app-shell:is(.version4, .version5) .sidebar-job {
     z-index: 1;
   }
 
-  .app-shell.version4 .sidebar-job.is-active {
+  .app-shell:is(.version4, .version5) .sidebar-job.is-active {
     z-index: 2;
   }
 
-  .app-shell.version4 .sidebar-job.is-menu-open {
+  .app-shell:is(.version4, .version5) .sidebar-job.is-menu-open {
     z-index: 20;
   }
 
-  .app-shell.version4 .sidebar-job-popover {
+  .app-shell:is(.version4, .version5) .sidebar-job-popover {
     top: calc(100% + 6px);
     right: 4px;
     z-index: 40;
   }
 
-  .app-shell.version4 .sidebar-job.is-active:hover,
-  .app-shell.version4 .sidebar-job.is-active:focus-within,
-  .app-shell.version4 .sidebar-job.is-active.is-menu-open {
+  .app-shell:is(.version4, .version5) .sidebar-job.is-active:hover,
+  .app-shell:is(.version4, .version5) .sidebar-job.is-active:focus-within,
+  .app-shell:is(.version4, .version5) .sidebar-job.is-active.is-menu-open {
     background: transparent;
   }
 
-  .app-shell.version4 .has-sliding-hover .menu-hover-slab {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .menu-hover-slab {
     position: absolute;
     top: 0;
     right: 4px;
@@ -2737,15 +2738,15 @@
     transition: background-color .18s ease;
   }
 
-  .app-shell.version4 .has-sliding-hover .menu-hover-slab.is-danger {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .menu-hover-slab.is-danger {
     background: color-mix(in srgb, var(--destructive) 10%, var(--soft-white));
   }
 
-  .app-shell.version4 .has-sliding-hover .menu-hover-slab.is-visible {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .menu-hover-slab.is-visible {
     opacity: 1;
   }
 
-  .app-shell.version4 .has-sliding-hover .menu-hover-slab.is-animated {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .menu-hover-slab.is-animated {
     transition:
       transform .22s cubic-bezier(.22, 1, .36, 1),
       height .22s cubic-bezier(.22, 1, .36, 1),
@@ -2753,25 +2754,1015 @@
       background-color .18s ease;
   }
 
-  .app-shell.version4 .has-sliding-hover [role="menuitem"] {
+  .app-shell:is(.version4, .version5) .has-sliding-hover [role="menuitem"] {
     position: relative;
     z-index: 1;
   }
 
-  .app-shell.version4 .has-sliding-hover .export-menu-item:hover,
-  .app-shell.version4 .has-sliding-hover .sidebar-job-menu-item:hover {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .export-menu-item:hover,
+  .app-shell:is(.version4, .version5) .has-sliding-hover .sidebar-job-menu-item:hover {
     background: transparent;
   }
 
   /* Non-sliding menus: rose wash on destructive hover only. */
-  .app-shell.version4 .sidebar-job-menu-item.is-danger:hover,
-  .app-shell.version4 .sidebar-job-menu-item.is-danger:focus-visible {
+  .app-shell:is(.version4, .version5) .sidebar-job-menu-item.is-danger:hover,
+  .app-shell:is(.version4, .version5) .sidebar-job-menu-item.is-danger:focus-visible {
     background: color-mix(in srgb, var(--destructive) 10%, var(--soft-white));
   }
 
-  .app-shell.version4 .has-sliding-hover .sidebar-job-menu-item.is-danger:hover,
-  .app-shell.version4 .has-sliding-hover .sidebar-job-menu-item.is-danger:focus-visible {
+  .app-shell:is(.version4, .version5) .has-sliding-hover .sidebar-job-menu-item.is-danger:hover,
+  .app-shell:is(.version4, .version5) .has-sliding-hover .sidebar-job-menu-item.is-danger:focus-visible {
     background: transparent;
+  }
+
+  /* Version 5 — Review Jobs table home */
+  .app-shell.version5.is-jobs-home {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .app-shell.version5.is-job-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .app-header {
+    flex: 0 0 auto;
+    border-bottom: 1px solid color-mix(in srgb, #13439a 12%, var(--soft-white));
+    background: color-mix(in srgb, #13439a 4%, var(--soft-white));
+  }
+
+  .app-header-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 480px) minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+    /* Match home (search) header: 12px padding + 44px field */
+    min-height: 68px;
+    padding: 12px 24px;
+    box-sizing: border-box;
+  }
+
+  .app-header.is-brand-only .app-header-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .app-header.is-brand-only .app-header-actions {
+    justify-self: end;
+  }
+
+  .app-shell.version5 .version5-header-jobs-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 36px;
+    padding: 0 10px;
+    text-decoration: none;
+  }
+
+  .app-header-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    flex: 0 0 auto;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .app-header-brand .brand-mark {
+    height: 26px;
+  }
+
+  .app-header .app-header-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: stretch;
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #eceff3;
+    border-radius: 10px;
+    color: #9aa1ab;
+    background: var(--background);
+    box-shadow: none;
+    transition:
+      border-color .15s ease,
+      box-shadow .15s ease,
+      color .15s ease;
+  }
+
+  .app-header .app-header-search,
+  .app-header .app-header-search:hover,
+  .app-header .app-header-search:focus,
+  .app-header .app-header-search:focus-within,
+  .app-header .app-header-search input,
+  .app-header .app-header-search input:hover,
+  .app-header .app-header-search input:focus,
+  .app-header .app-header-search input:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+    outline-offset: 0 !important;
+  }
+
+  .app-header .app-header-search:hover,
+  .app-header .app-header-search:focus-within {
+    color: var(--muted-foreground);
+  }
+
+  .app-header .app-header-search:hover {
+    border-color: #d5dde8;
+    box-shadow: 0 0 0 1px #e4ebf3;
+  }
+
+  .app-header .app-header-search:focus-within {
+    border-color: #c5d0de;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .03);
+  }
+
+  .app-header .app-header-search input {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    color: var(--foreground);
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    appearance: none;
+  }
+
+  .app-header .app-header-search input[type="search"]::-webkit-search-decoration,
+  .app-header .app-header-search input[type="search"]::-webkit-search-results-button,
+  .app-header .app-header-search input[type="search"]::-webkit-search-results-decoration {
+    display: none;
+  }
+
+  .app-header .app-header-search input[type="search"]::-webkit-search-cancel-button {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-inline-start: 6px;
+    background-color: var(--muted-foreground);
+    cursor: pointer;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    -webkit-mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+  }
+
+  .app-header .app-header-search input::placeholder {
+    color: #9aa1ab;
+    transition: color .15s ease;
+  }
+
+  .app-header .app-header-search:hover input::placeholder,
+  .app-header .app-header-search:focus-within input::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  .app-header .app-header-search svg {
+    flex: 0 0 auto;
+    display: block;
+  }
+
+  .app-header-actions {
+    display: flex;
+    align-items: center;
+    justify-self: end;
+    gap: 8px;
+  }
+
+  .app-header-actions .primary-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 14px;
+  }
+
+  .app-shell.version5 .version5-jobs-layout {
+    display: flex;
+    flex-direction: column;
+    max-width: 1100px;
+    gap: 20px;
+  }
+
+  .app-shell.version5 .version5-jobs-layout.is-empty {
+    flex: 1;
+    min-height: 0;
+    justify-content: center;
+    align-items: center;
+    padding-block: 48px;
+  }
+
+  .app-shell.version5 .version5-jobs-header {
+    margin-bottom: 0;
+  }
+
+  .app-shell.version5 .version5-jobs-header .primary-button,
+  .app-shell.version5 .version5-jobs-empty .primary-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-shell.version5 .version5-jobs-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+  }
+
+  .app-shell.version5 .version5-jobs-table-wrap {
+    border: 1px solid color-mix(in srgb, #13439a 14%, var(--soft-white));
+    border-radius: 12px;
+    background: var(--background);
+  }
+
+  .app-shell.version5 .version5-jobs-table th {
+    background: color-mix(in srgb, #13439a 4%, var(--soft-white));
+    border-bottom: 1px solid color-mix(in srgb, #13439a 12%, var(--soft-white));
+    font-size: 14px;
+  }
+
+  .app-shell.version5 .version5-jobs-row {
+    cursor: pointer;
+  }
+
+  .app-shell.version5 .version5-jobs-row:hover td {
+    background: color-mix(in srgb, #13439a 4%, var(--soft-white));
+  }
+
+  .app-shell.version5 .version5-jobs-row:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .app-shell.version5 .version5-jobs-name {
+    display: block;
+    color: var(--foreground);
+    font-weight: 600;
+  }
+
+  .app-shell.version5 .version5-jobs-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted-foreground);
+    font-size: 12px;
+  }
+
+  .app-shell.version5 .version5-jobs-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #dce8fb;
+    color: #1a56c4;
+    font-size: 12px;
+    font-weight: 550;
+    white-space: nowrap;
+  }
+
+  .app-shell.version5 .version5-jobs-status.is-idle {
+    background: #eceef1;
+    color: #5c6370;
+    box-shadow: inset 0 0 0 1px #d7dbe2;
+  }
+
+  .app-shell.version5 .version5-jobs-status.is-ready {
+    background: #dce8fb;
+    color: #1a56c4;
+  }
+
+  .app-shell.version5 .version5-jobs-status.is-completed {
+    background: #d8f3e3;
+    color: #168a42;
+  }
+
+  .app-shell.version5 .version5-jobs-status.is-error {
+    background: #fde8e8;
+    color: color-mix(in srgb, var(--destructive) 88%, #1c1c1c);
+  }
+
+  .app-shell.version5 .version5-jobs-status.is-processing {
+    background: #d7ecfc;
+    color: #1560bc;
+  }
+
+  .app-shell.version5 .version5-jobs-progress {
+    display: inline-grid;
+    grid-template-columns: 5.5ch 64px;
+    align-items: center;
+    column-gap: 10px;
+  }
+
+  .app-shell.version5 .version5-jobs-progress > span:first-child {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .app-shell.version5 .version5-jobs-progress-bar {
+    display: block;
+    width: 64px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, #13439a 10%, var(--soft-white));
+  }
+
+  .app-shell.version5 .version5-jobs-progress-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #13439a;
+  }
+
+  .app-shell.version5 .version5-jobs-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  .app-shell.version5 .version5-jobs-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    color: var(--muted-foreground);
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity .12s ease,
+      color .12s ease;
+  }
+
+  .app-shell.version5 .version5-jobs-delete:hover {
+    color: var(--foreground);
+    background: transparent;
+  }
+
+  .app-shell.version5 .version5-jobs-delete:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .app-shell.version5 .version5-jobs-row:hover .version5-jobs-delete,
+  .app-shell.version5 .version5-jobs-delete:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app-shell.version5 .version5-jobs-empty {
+    display: grid;
+    justify-items: center;
+    gap: 32px;
+    width: min(100%, 520px);
+    margin-inline: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: center;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-visual {
+    display: grid;
+    gap: 16px;
+    justify-items: stretch;
+    width: min(100%, 400px);
+  }
+
+  .app-shell.version5 .version5-jobs-empty-media {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border: 0;
+    border-radius: 18px;
+    background: linear-gradient(to bottom left, #e8f2ff, #d4e0f2);
+    box-shadow: none;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-illustration {
+    grid-area: 1 / 1;
+    width: min(78%, 220px);
+    height: auto;
+    max-height: 82%;
+    object-fit: contain;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-illustration.is-active {
+    opacity: 1;
+    visibility: visible;
+    animation: upload-placeholder-fade .4s ease;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, #94a3b8 45%, #e8f2ff);
+    cursor: pointer;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-dot.is-active {
+    width: 18px;
+    background: color-mix(in srgb, #64748b 55%, #d4e0f2);
+  }
+
+  .app-shell.version5 .version5-jobs-empty-dot:hover {
+    background: color-mix(in srgb, #64748b 40%, #e8f2ff);
+  }
+
+  .app-shell.version5 .version5-jobs-empty-copy {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    max-width: 480px;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-status {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 550;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-need {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 650;
+    letter-spacing: -.03em;
+    line-height: 1.2;
+  }
+
+  .app-shell.version5 .version5-jobs-empty-why {
+    margin: 0;
+    max-width: 40ch;
+    color: var(--muted-foreground);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .app-shell.version5 .version5-jobs-empty .primary-button {
+    margin-top: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  .app-shell.version5 .version5-jobs-empty.is-filtered {
+    justify-items: start;
+    width: min(100%, 520px);
+    margin-inline: 0;
+    text-align: left;
+  }
+
+  .app-shell.version5 .version5-jobs-empty.is-filtered .version5-jobs-empty-copy {
+    justify-items: start;
+    max-width: none;
+  }
+
+  .app-shell.version5 .version5-jobs-empty.is-filtered .version5-jobs-empty-need {
+    font-size: 20px;
+  }
+
+  .app-shell.version5 .version5-jobs-empty.is-filtered .version5-jobs-empty-why {
+    max-width: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-shell.version5 .version5-jobs-empty-illustration.is-active {
+      animation: none;
+    }
+  }
+
+  .app-shell.version5 .version5-back-icon {
+    transform: rotate(180deg);
+  }
+
+  .app-shell.version5 .version5-current-job-name {
+    margin: 0;
+    padding: 0 8px;
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 550;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.version5.is-job-workspace .app-main {
+    min-height: 0;
+  }
+
+  .app-shell.version5.is-job-workspace .content-grid.upload-layout {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-width: 1100px;
+    gap: 20px;
+  }
+
+  /* Full-bleed extract footer: match app-header height + viewport width */
+  .app-shell.version5.is-job-workspace .content-grid.upload-layout:has(.upload-extract-footer) {
+    max-width: none;
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+
+  .app-shell.version5.is-job-workspace .content-grid.upload-layout:has(.upload-extract-footer) > :not(.upload-extract-footer) {
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: 24px;
+    box-sizing: border-box;
+  }
+
+  .app-shell.version5.is-job-workspace .upload-extract-footer {
+    min-height: 80px;
+    height: 80px;
+    padding-block: 16px;
+    padding-inline: max(24px, calc((100% - 1100px) / 2 + 24px));
+    box-sizing: border-box;
+  }
+
+  .app-shell.version5.is-job-workspace .upload-extract-footer .primary-button {
+    min-height: 40px;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .app-shell.version5.is-job-workspace .upload-extract-footer {
+      height: auto;
+      min-height: 0;
+      padding-inline: 24px;
+    }
+  }
+
+  .app-shell.version5 .version5-review-page-header {
+    margin-bottom: 0;
+  }
+
+  /* Document-primary review canvas (feedback #5) */
+  .app-shell.version5 .content-grid.upload-layout:has(.document-review-canvas) {
+    gap: 16px;
+    overflow: hidden;
+  }
+
+  .document-review-canvas {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    border: 1px solid color-mix(in srgb, #13439a 14%, var(--border));
+    border-radius: 12px;
+    background: var(--background);
+    overflow: hidden;
+  }
+
+  .document-review-canvas.is-empty {
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    font-size: 14px;
+  }
+
+  .review-summary-dialog-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgb(15 23 42 / .32);
+  }
+
+  .review-summary-dialog {
+    display: flex;
+    flex-direction: column;
+    width: min(920px, 100%);
+    max-height: min(820px, calc(100dvh - 48px));
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, #13439a 14%, var(--border));
+    border-radius: 14px;
+    background: var(--background);
+    box-shadow: 0 24px 80px color-mix(in srgb, #0f172a 18%, transparent);
+  }
+
+  .review-summary-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+    padding: 20px 20px 12px;
+  }
+
+  .review-summary-dialog-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .review-summary-dialog-lede {
+    margin: 4px 0 0;
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
+
+  .review-summary-dialog-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted-foreground);
+    background: var(--background);
+    cursor: pointer;
+  }
+
+  .review-summary-dialog-close:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  .review-summary-dialog-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .review-summary-dialog-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 0 20px 16px;
+  }
+
+  .review-summary-dialog-stats span {
+    display: grid;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted-foreground);
+    font-size: 12px;
+  }
+
+  .review-summary-dialog-stats strong {
+    color: var(--foreground);
+    font-size: 18px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .review-summary-dialog-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 20px 8px;
+  }
+
+  .review-summary-dialog-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .review-summary-dialog-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 550;
+    text-align: left;
+  }
+
+  .review-summary-dialog-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    vertical-align: middle;
+  }
+
+  .review-summary-dialog-empty {
+    color: var(--muted-foreground);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .review-summary-dialog-table tr.is-active td {
+    background: color-mix(in srgb, #13439a 6%, var(--background));
+  }
+
+  .review-summary-dialog-tag {
+    padding: 0;
+    border: 0;
+    color: var(--foreground);
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .review-summary-dialog-tag:hover {
+    color: #13439a;
+    text-decoration: underline;
+  }
+
+  .review-summary-dialog-status {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 550;
+  }
+
+  .review-summary-dialog-status.is-approved {
+    color: #166534;
+  }
+
+  .review-summary-dialog-status.is-rejected {
+    color: #9f1239;
+  }
+
+  .review-summary-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 14px 20px 18px;
+    border-top: 1px solid var(--border);
+  }
+
+  .document-review-stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pdf-viewer-panel.is-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border-left: 0;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .pdf-viewer-panel.is-canvas .pdf-viewer-header {
+    padding-right: 16px;
+  }
+
+  .pdf-viewer-panel.is-canvas .pdf-viewer-header-actions {
+    flex-shrink: 0;
+  }
+
+  .document-review-bubble {
+    position: absolute;
+    z-index: 4;
+    max-width: calc(100% - 16px);
+    pointer-events: auto;
+  }
+
+  .document-review-bubble.is-collapsed {
+    width: 28px;
+    height: 28px;
+  }
+
+  .document-review-pin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid var(--background);
+    border-radius: 999px;
+    color: #fff;
+    background: #3b6fd4;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, #13439a 28%, transparent),
+      0 4px 12px color-mix(in srgb, #0f172a 18%, transparent);
+    cursor: pointer;
+  }
+
+  .document-review-bubble.is-approved .document-review-pin {
+    background: #1f8a4c;
+  }
+
+  .document-review-bubble.is-rejected .document-review-pin {
+    background: #c43b3b;
+  }
+
+  .document-review-bubble.is-needs-review .document-review-pin {
+    background: #c47a1a;
+  }
+
+  .document-review-pin:hover {
+    transform: scale(1.06);
+  }
+
+  .document-review-pin:focus-visible,
+  .document-review-decision:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .document-review-pin-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .document-review-bubble-row {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 3px 3px 3px 10px;
+    border: 1px solid color-mix(in srgb, #13439a 16%, var(--border));
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    backdrop-filter: blur(8px);
+    box-shadow:
+      0 1px 2px color-mix(in srgb, #13439a 10%, transparent),
+      0 10px 24px color-mix(in srgb, #0f172a 14%, transparent);
+  }
+
+  .document-review-bubble.is-approved .document-review-bubble-row {
+    border-color: color-mix(in srgb, #1f8a4c 28%, var(--border));
+  }
+
+  .document-review-bubble.is-rejected .document-review-bubble-row {
+    border-color: color-mix(in srgb, #c43b3b 28%, var(--border));
+  }
+
+  .document-review-bubble.is-needs-review .document-review-bubble-row {
+    border-color: color-mix(in srgb, #c47a1a 28%, var(--border));
+  }
+
+  .document-review-bubble-tag {
+    flex: 0 0 auto;
+    color: var(--foreground);
+    font-size: 12px;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+
+  .document-review-bubble-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 18px;
+    background: color-mix(in srgb, #13439a 16%, var(--border));
+  }
+
+  .document-review-bubble-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    padding: 1px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--muted) 55%, transparent);
+  }
+
+  .document-review-bubble-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 7px;
+    color: var(--muted-foreground);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .document-review-bubble-close:hover {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  .document-review-bubble-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .document-review-decision {
+    min-height: 28px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 7px;
+    color: var(--muted-foreground);
+    background: transparent;
+    font-size: 11px;
+    font-weight: 550;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .document-review-decision.is-approved {
+    color: #166534;
+  }
+
+  .document-review-decision.is-rejected {
+    color: #9f1239;
+  }
+
+  .document-review-decision:hover {
+    background: var(--background);
+  }
+
+  .document-review-decision.is-approved:hover {
+    color: #14532d;
+  }
+
+  .document-review-decision.is-rejected:hover {
+    color: #881337;
+  }
+
+  .document-review-decision.is-approved.is-active {
+    color: #166534;
+    background: #d8f3e3;
+  }
+
+  .document-review-decision.is-rejected.is-active {
+    color: #9f1239;
+    background: #fde2e1;
+  }
+
+  .document-review-decision.is-needs-review.is-active {
+    color: var(--muted-foreground);
+    background: var(--muted);
+  }
+
+  .review-summary-dialog-status.is-needs-review {
+    color: #92400e;
+  }
+
+  @media (max-width: 720px) {
+    .review-summary-dialog-scrim {
+      padding: 12px;
+    }
+
+    .review-summary-dialog-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .review-summary-dialog-footer {
+      flex-wrap: wrap;
+    }
   }
 
   .summary-stats {
@@ -2923,7 +3914,7 @@
       color: var(--muted-foreground);
     }
 
-    .app-shell.version4 .upload-extract-footer-status {
+    .app-shell:is(.version4, .version5) .upload-extract-footer-status {
       color: color-mix(in srgb, var(--soft-white) 92%, transparent);
     }
 
@@ -2973,7 +3964,7 @@
     box-shadow: 0 1px 2px rgb(0 0 0 / .03);
   }
 
-  .job-search-field:focus-within {
+  .job-search-field:focus-within:not(.app-header-search) {
     border-color: color-mix(in oklab, var(--ring) 70%, var(--foreground));
     outline: 2px solid color-mix(in oklab, var(--ring) 55%, transparent);
     outline-offset: 1px;
@@ -3479,10 +4470,10 @@
 
   .pdf-viewer-header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--border);
   }
 
@@ -3502,6 +4493,13 @@
     margin-top: 3px;
     color: var(--muted-foreground);
     font-size: 12px;
+  }
+
+  .pdf-viewer-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
   }
 
   .pdf-viewer-close {
@@ -3527,9 +4525,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--background);
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   .pdf-viewer-zoom-button {
@@ -3574,10 +4572,6 @@
 
   .pdf-viewer-zoom-fit {
     margin-left: 2px;
-  }
-
-  .pdf-viewer-zoom-focus {
-    margin-left: auto;
   }
 
   .pdf-viewer-highlight-toggle.is-on {
@@ -3889,6 +4883,12 @@
 
   .export-menu {
     position: relative;
+  }
+
+  .export-excel-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .export-menu-trigger {

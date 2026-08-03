@@ -36,4 +36,27 @@ export const router = createBrowserRouter([
       return { Component: Version4Page }
     },
   },
+  {
+    path: "/version5",
+    lazy: async () => {
+      const { Version5Layout } = await import("@/pages/version5")
+      return { Component: Version5Layout }
+    },
+    children: [
+      {
+        index: true,
+        lazy: async () => {
+          const { Version5JobsPage } = await import("@/pages/version5")
+          return { Component: Version5JobsPage }
+        },
+      },
+      {
+        path: "jobs/:jobId",
+        lazy: async () => {
+          const { Version5Workspace } = await import("@/pages/version5")
+          return { Component: Version5Workspace }
+        },
+      },
+    ],
+  },
 ])

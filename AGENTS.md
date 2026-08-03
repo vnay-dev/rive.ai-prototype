@@ -1,5 +1,16 @@
 # AGENTS.md
 
+## Active Version (edit this)
+
+Agents must apply UI/feature fixes only to the version below unless the user explicitly names another version.
+
+```
+ACTIVE_VERSION_ROUTE=/version5
+ACTIVE_VERSION_CODE_PATH=src/pages/version5
+```
+
+Do not change other version routes (`/version1`, `/version2`, `/version3`, `/version4`, …) or their page folders. Shared components under `src/components` may be updated only when needed by the active version—avoid breaking older versions.
+
 ## Project
 
 Enterprise AI application for reviewing engineering documents (P&IDs, drawings, PDFs). AI extracts engineering tags, engineers validate them before exporting.

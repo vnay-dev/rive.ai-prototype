@@ -34,6 +34,13 @@ export function LandingPage() {
             layout and occurrence-level review, ready to be restyled independently.
           </span>
         </Link>
+        <Link className="prototype-version-card" to="/version5">
+          <strong>Version 5</strong>
+          <span>
+            Fork of Version 4 for round-1 feedback fixes: jobs table home, document-
+            primary review, pause/resume clarity, scale, and bulk actions.
+          </span>
+        </Link>
       </div>
     </main>
   )

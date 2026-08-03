@@ -967,7 +967,6 @@ function UploadView({
                 jobName={job.name}
                 onExported={onMarkExported}
                 rows={exportRows}
-                slidingHover
               />
             </div>
           ) : null}

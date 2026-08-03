@@ -6,6 +6,7 @@ import { generateJobName, startReview } from "@/lib/openrouter"
 import {
   createEmptyJob,
   createJobNameFromFile,
+  getDecidedReviewProgress,
   getResolvedReviewProgress,
   loadWorkspace,
   normalizeViewer,
@@ -116,10 +117,17 @@ export function useReviewJobs() {
     jobId: number,
     updater: (job: RuntimeReviewJob) => RuntimeReviewJob,
   ) => {
-    replaceJobs((current) => current.map((job) => {
-      if (job.id !== jobId) return job
-      return touch(updater(job))
-    }))
+    replaceJobs((current) => {
+      let changed = false
+      const next = current.map((job) => {
+        if (job.id !== jobId) return job
+        const updated = updater(job)
+        if (updated === job) return job
+        changed = true
+        return touch(updated)
+      })
+      return changed ? next : current
+    })
   }, [replaceJobs])
 
   const runReviewForJob = useCallback(async (jobId: number) => {
@@ -517,11 +525,20 @@ export function useReviewJobs() {
       } else {
         next[occurrenceKey] = decision
       }
-      return {
+
+      const draft = {
         ...job,
         decisions: next,
-        completedAt: null,
         reviewStartedAt: job.reviewStartedAt ?? Date.now(),
+      }
+      const { decided, total } = getDecidedReviewProgress(draft)
+      const isComplete = total > 0 && decided === total
+
+      return {
+        ...draft,
+        // Auto-complete when every occurrence has a decision; reopen if one is cleared.
+        completedAt: isComplete ? (job.completedAt ?? Date.now()) : null,
+        viewer: isComplete ? null : job.viewer,
       }
     })
   }, [updateJob])
@@ -545,7 +562,22 @@ export function useReviewJobs() {
     jobId: number,
     viewer: ReviewViewerTarget | null,
   ) => {
-    updateJob(jobId, (job) => ({ ...job, viewer: normalizeViewer(viewer) }))
+    updateJob(jobId, (job) => {
+      const next = normalizeViewer(viewer)
+      const prev = job.viewer
+      if (prev === next) return job
+      if (
+        prev
+        && next
+        && prev.tag === next.tag
+        && prev.documentName === next.documentName
+        && prev.page === next.page
+      ) {
+        return job
+      }
+      if (!prev && !next) return job
+      return { ...job, viewer: next }
+    })
   }, [updateJob])
 
   // Keep meta.activeJobId warm even when jobs array is unchanged besides selection.

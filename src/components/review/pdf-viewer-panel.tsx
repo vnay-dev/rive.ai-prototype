@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Minus, Plus, ScanSearch, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, GripVertical, Highlighter, Minus, Plus, X } from "lucide-react"
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -22,9 +22,13 @@ type PdfViewerPanelProps = {
   canGoPrevious: boolean
   canGoNext: boolean
   isClosing?: boolean
+  /** `drawer` (default) = fixed right panel; `canvas` = fill parent for document-primary review. */
+  variant?: "drawer" | "canvas"
   onClose: () => void
   onPreviousMatch: () => void
   onNextMatch: () => void
+  /** Active highlight box relative to the panel element (canvas mode bubble anchor). */
+  onActiveHighlightChange?: (rect: Highlight | null) => void
 }
 
 type Highlight = {
@@ -118,13 +122,22 @@ function normalizeTagChar(char: string) {
   return char.toUpperCase()
 }
 
-function findHighlights(items: PdfTextItems, viewport: PdfPageViewport, tag: string): Highlight[] {
-  const needle = tag
+function compactTag(value: string) {
+  return value
     .trim()
     .toUpperCase()
     .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, "-")
     .replace(/\s+/g, "")
-  if (!needle) return []
+}
+
+function alnumTag(value: string) {
+  return compactTag(value).replace(/[^A-Z0-9]/g, "")
+}
+
+function findHighlights(items: PdfTextItems, viewport: PdfPageViewport, tag: string): Highlight[] {
+  const needle = compactTag(tag)
+  const needleAlnum = alnumTag(tag)
+  if (!needle && !needleAlnum) return []
 
   const chars: CharBox[] = []
 
@@ -154,36 +167,49 @@ function findHighlights(items: PdfTextItems, viewport: PdfPageViewport, tag: str
   // Ignore whitespace so fragmented PDF glyphs (e.g. "PSV- 4015A") still match.
   const compactIndexes: number[] = []
   let compactHaystack = ""
+  const alnumIndexes: number[] = []
+  let alnumHaystack = ""
   for (let i = 0; i < chars.length; i++) {
     const char = chars[i]!.char
     if (/\s/.test(char)) continue
     compactIndexes.push(i)
     compactHaystack += char
-  }
-
-  const highlights: Highlight[] = []
-  let from = compactHaystack.indexOf(needle)
-
-  while (from !== -1) {
-    const start = compactIndexes[from]
-    const end = compactIndexes[from + needle.length - 1]
-    if (start !== undefined && end !== undefined) {
-      const slice = chars.slice(start, end + 1)
-      const left = Math.min(...slice.map((entry) => entry.left))
-      const top = Math.min(...slice.map((entry) => entry.top))
-      const right = Math.max(...slice.map((entry) => entry.left + entry.width))
-      const bottom = Math.max(...slice.map((entry) => entry.top + entry.height))
-      highlights.push({
-        left: left - HIGHLIGHT_PAD_X,
-        top: top - HIGHLIGHT_PAD_Y,
-        width: Math.max(right - left + HIGHLIGHT_PAD_X * 2, 28),
-        height: Math.max(bottom - top + HIGHLIGHT_PAD_Y * 2, 32),
-      })
+    if (/[A-Z0-9]/.test(char)) {
+      alnumIndexes.push(i)
+      alnumHaystack += char
     }
-    from = compactHaystack.indexOf(needle, from + 1)
   }
 
-  return highlights
+  function collect(haystack: string, indexes: number[], search: string) {
+    const highlights: Highlight[] = []
+    if (!search) return highlights
+    let from = haystack.indexOf(search)
+    while (from !== -1) {
+      const start = indexes[from]
+      const end = indexes[from + search.length - 1]
+      if (start !== undefined && end !== undefined) {
+        const slice = chars.slice(start, end + 1)
+        const left = Math.min(...slice.map((entry) => entry.left))
+        const top = Math.min(...slice.map((entry) => entry.top))
+        const right = Math.max(...slice.map((entry) => entry.left + entry.width))
+        const bottom = Math.max(...slice.map((entry) => entry.top + entry.height))
+        highlights.push({
+          left: left - HIGHLIGHT_PAD_X,
+          top: top - HIGHLIGHT_PAD_Y,
+          width: Math.max(right - left + HIGHLIGHT_PAD_X * 2, 28),
+          height: Math.max(bottom - top + HIGHLIGHT_PAD_Y * 2, 32),
+        })
+      }
+      from = haystack.indexOf(search, from + 1)
+    }
+    return highlights
+  }
+
+  const exact = collect(compactHaystack, compactIndexes, needle)
+  if (exact.length > 0) return exact
+
+  // Fallback: ignore punctuation differences (PSV4015A vs PSV-4015A).
+  return collect(alnumHaystack, alnumIndexes, needleAlnum)
 }
 
 function isCancelled(error: unknown) {
@@ -226,10 +252,13 @@ export function PdfViewerPanel({
   canGoPrevious,
   canGoNext,
   isClosing = false,
+  variant = "drawer",
   onClose,
   onPreviousMatch,
   onNextMatch,
+  onActiveHighlightChange,
 }: PdfViewerPanelProps) {
+  const isCanvas = variant === "canvas"
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -275,7 +304,7 @@ export function PdfViewerPanel({
     initialFocusRef: closeRef,
     onEscape: onClose,
     enableInert: false,
-    enabled: !isClosing,
+    enabled: !isCanvas && !isClosing,
   })
 
   function scrollStageToMinimapPoint(clientX: number, clientY: number, smooth = false) {
@@ -379,24 +408,31 @@ export function PdfViewerPanel({
   }, [])
 
   useEffect(() => {
+    if (isCanvas) {
+      document.body.classList.remove("has-pdf-viewer")
+      return
+    }
     document.body.classList.toggle("has-pdf-viewer", !isClosing)
     return () => document.body.classList.remove("has-pdf-viewer")
-  }, [isClosing])
+  }, [isCanvas, isClosing])
 
   useEffect(() => {
+    if (isCanvas) return
     document.body.classList.toggle("is-pdf-viewer-resizing", isResizing && !isClosing)
     return () => document.body.classList.remove("is-pdf-viewer-resizing")
-  }, [isClosing, isResizing])
+  }, [isCanvas, isClosing, isResizing])
 
   useEffect(() => {
+    if (isCanvas) return
     document.body.style.setProperty("--pdf-viewer-width", `${panelWidth}px`)
-  }, [panelWidth])
+  }, [isCanvas, panelWidth])
 
   useEffect(() => {
+    if (isCanvas) return
     return () => {
       document.body.style.removeProperty("--pdf-viewer-width")
     }
-  }, [])
+  }, [isCanvas])
 
   useEffect(() => {
     function onWindowResize() {
@@ -597,6 +633,38 @@ export function PdfViewerPanel({
   }, [highlights, showSkeleton, currentPage, documentName, matchIndex, zoom])
 
   useEffect(() => {
+    if (!onActiveHighlightChange) return
+
+    function report() {
+      const highlight = activeHighlightRef.current
+      const panel = panelRef.current
+      if (!highlight || !panel || showSkeleton || highlights.length === 0) {
+        onActiveHighlightChange?.(null)
+        return
+      }
+      const highlightRect = highlight.getBoundingClientRect()
+      const panelRect = panel.getBoundingClientRect()
+      onActiveHighlightChange?.({
+        left: highlightRect.left - panelRect.left,
+        top: highlightRect.top - panelRect.top,
+        width: highlightRect.width,
+        height: highlightRect.height,
+      })
+    }
+
+    const frame = window.requestAnimationFrame(report)
+    const stage = stageRef.current
+    stage?.addEventListener("scroll", report, { passive: true })
+    window.addEventListener("resize", report)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      stage?.removeEventListener("scroll", report)
+      window.removeEventListener("resize", report)
+      onActiveHighlightChange(null)
+    }
+  }, [highlights, showSkeleton, zoom, pageSize, matchIndex, onActiveHighlightChange])
+
+  useEffect(() => {
     const stage = stageRef.current
     if (!stage) return
 
@@ -643,9 +711,16 @@ export function PdfViewerPanel({
     <aside
       aria-keyshortcuts="Escape ArrowLeft ArrowRight + - 0"
       aria-label={`${tag} occurrences in ${documentName}. Keyboard: Escape closes, arrows change match, plus and minus zoom, zero resets zoom.`}
-      className={`pdf-viewer-panel${isClosing ? " is-closing" : ""}${isResizing ? " is-resizing" : ""}${highlightsVisible ? "" : " highlights-off"}`}
+      className={[
+        "pdf-viewer-panel",
+        isCanvas ? "is-canvas" : "",
+        isClosing ? "is-closing" : "",
+        isResizing ? "is-resizing" : "",
+        highlightsVisible ? "" : "highlights-off",
+      ].filter(Boolean).join(" ")}
       ref={panelRef}
     >
+      {!isCanvas && (
       <div
         aria-label="Resize document viewer"
         aria-orientation="vertical"
@@ -691,111 +766,105 @@ export function PdfViewerPanel({
           <GripVertical size={12} strokeWidth={2.2} />
         </span>
       </div>
+      )}
       <header className="pdf-viewer-header">
         <div className="pdf-viewer-heading">
           <p className="pdf-viewer-file" title={documentName}>{documentName}</p>
           <p className="pdf-viewer-tag">{tag} · Page {currentPage}</p>
         </div>
-        <Tooltip open={closeTooltipOpen}>
-          <TooltipTrigger asChild>
+        <div className="pdf-viewer-header-actions">
+          <div className="pdf-viewer-toolbar" role="toolbar" aria-label="Zoom controls">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="pdf-viewer-tooltip-target">
+                  <button
+                    aria-label="Zoom out"
+                    className="pdf-viewer-zoom-button"
+                    disabled={!canZoomOut || status !== "ready"}
+                    onClick={() => setZoom((current) => clampZoom(current - ZOOM_STEP))}
+                    type="button"
+                  >
+                    <Minus aria-hidden="true" size={14} strokeWidth={2} />
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!canZoomOut && status === "ready" ? "Minimum zoom reached" : "Zoom out"}
+              </TooltipContent>
+            </Tooltip>
+            <span className="pdf-viewer-zoom-value" aria-live="polite">{zoomPercent}%</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="pdf-viewer-tooltip-target">
+                  <button
+                    aria-label="Zoom in"
+                    className="pdf-viewer-zoom-button"
+                    disabled={!canZoomIn || status !== "ready"}
+                    onClick={() => setZoom((current) => clampZoom(current + ZOOM_STEP))}
+                    type="button"
+                  >
+                    <Plus aria-hidden="true" size={14} strokeWidth={2} />
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {!canZoomIn && status === "ready" ? "Maximum zoom reached" : "Zoom in"}
+              </TooltipContent>
+            </Tooltip>
             <button
-              aria-label="Close viewer"
-              className="pdf-viewer-close"
-              onClick={onClose}
-              onPointerEnter={() => setCloseTooltipOpen(true)}
-              onPointerLeave={() => setCloseTooltipOpen(false)}
-              ref={closeRef}
+              aria-label="Fit width"
+              className="pdf-viewer-zoom-button pdf-viewer-zoom-fit"
+              disabled={status !== "ready"}
+              onClick={() => setZoom(1)}
               type="button"
             >
-              <X aria-hidden="true" size={16} strokeWidth={1.9} />
+              Fit width
             </button>
-          </TooltipTrigger>
-          <TooltipContent>Close viewer</TooltipContent>
-        </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="pdf-viewer-tooltip-target">
+                  <button
+                    aria-label={highlightsVisible ? "Hide highlights" : "Show highlights"}
+                    aria-pressed={highlightsVisible}
+                    className={`pdf-viewer-zoom-button pdf-viewer-highlight-toggle${highlightsVisible ? " is-on" : ""}`}
+                    onClick={() => {
+                      setHighlightsVisible((current) => {
+                        const next = !current
+                        persistHighlightsVisible(next)
+                        return next
+                      })
+                    }}
+                    type="button"
+                  >
+                    <Highlighter aria-hidden="true" size={14} strokeWidth={1.9} />
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {highlightsVisible ? "Hide highlights" : "Show highlights"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          {!isCanvas && (
+            <Tooltip open={closeTooltipOpen}>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label="Close viewer"
+                  className="pdf-viewer-close"
+                  onClick={onClose}
+                  onPointerEnter={() => setCloseTooltipOpen(true)}
+                  onPointerLeave={() => setCloseTooltipOpen(false)}
+                  ref={closeRef}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={16} strokeWidth={1.9} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Close viewer</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </header>
-
-      <div className="pdf-viewer-toolbar" role="toolbar" aria-label="Zoom controls">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="pdf-viewer-tooltip-target">
-              <button
-                aria-label="Zoom out"
-                className="pdf-viewer-zoom-button"
-                disabled={!canZoomOut || status !== "ready"}
-                onClick={() => setZoom((current) => clampZoom(current - ZOOM_STEP))}
-                type="button"
-              >
-                <Minus aria-hidden="true" size={14} strokeWidth={2} />
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {!canZoomOut && status === "ready" ? "Minimum zoom reached" : "Zoom out"}
-          </TooltipContent>
-        </Tooltip>
-        <span className="pdf-viewer-zoom-value" aria-live="polite">{zoomPercent}%</span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="pdf-viewer-tooltip-target">
-              <button
-                aria-label="Zoom in"
-                className="pdf-viewer-zoom-button"
-                disabled={!canZoomIn || status !== "ready"}
-                onClick={() => setZoom((current) => clampZoom(current + ZOOM_STEP))}
-                type="button"
-              >
-                <Plus aria-hidden="true" size={14} strokeWidth={2} />
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {!canZoomIn && status === "ready" ? "Maximum zoom reached" : "Zoom in"}
-          </TooltipContent>
-        </Tooltip>
-        <button
-          aria-label="Fit width"
-          className="pdf-viewer-zoom-button pdf-viewer-zoom-fit"
-          disabled={status !== "ready"}
-          onClick={() => setZoom(1)}
-          type="button"
-        >
-          Fit width
-        </button>
-        <button
-          aria-label="Focus tag"
-          className="pdf-viewer-zoom-button pdf-viewer-zoom-focus"
-          disabled={status !== "ready"}
-          onClick={() => setZoom(AUTO_ZOOM)}
-          type="button"
-        >
-          <ScanSearch aria-hidden="true" size={14} strokeWidth={1.9} />
-          Focus tag
-        </button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="pdf-viewer-tooltip-target">
-              <button
-                aria-label={highlightsVisible ? "Hide highlights" : "Show highlights"}
-                aria-pressed={highlightsVisible}
-                className={`pdf-viewer-zoom-button pdf-viewer-highlight-toggle${highlightsVisible ? " is-on" : ""}`}
-                onClick={() => {
-                  setHighlightsVisible((current) => {
-                    const next = !current
-                    persistHighlightsVisible(next)
-                    return next
-                  })
-                }}
-                type="button"
-              >
-                <Highlighter aria-hidden="true" size={14} strokeWidth={1.9} />
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {highlightsVisible ? "Hide highlights" : "Show highlights"}
-          </TooltipContent>
-        </Tooltip>
-      </div>
 
       <div className="pdf-viewer-body">
         <div className="pdf-viewer-stage" ref={stageRef}>

@@ -1,6 +1,8 @@
 import { USE_MOCK_DATA } from "@/lib/config"
 import { getMockReview } from "@/lib/mock-review"
 import {
+  alignReviewDocuments,
+  extractLocalReviewFromDocuments,
   isReviewResult,
   type ReviewDocumentInput,
   type ReviewResponse,
@@ -22,8 +24,12 @@ const SYSTEM_PROMPT = `You are an engineering document parser.
 
 Extract every engineering tag from this document.
 
-Return JSON only. Emit one entry per tag per page, with the document name it came from
-and how many times the tag appears on that page.
+Critical rules:
+- Copy each tag exactly as it appears in the document text (same letters, digits, and hyphens).
+- Use the document name exactly as provided in the input JSON (character-for-character).
+- Use the page number from the provided page content.
+- Do not invent tags that are not present in the text.
+- Return JSON only. Emit one entry per tag per page.
 
 [
   {
@@ -128,22 +134,38 @@ async function requestCompletion(
   }
 }
 
+function finalizeReview(
+  data: ReviewResult,
+  items: ReviewDocumentInput[],
+  source: ReviewResponse["source"],
+): ReviewResponse {
+  return {
+    source,
+    data: alignReviewDocuments(
+      data,
+      items.map((item) => item.name),
+    ),
+  }
+}
+
+function fallbackReview(items: ReviewDocumentInput[]): ReviewResponse {
+  const local = extractLocalReviewFromDocuments(items)
+  if (local.length > 0) {
+    return finalizeReview(local, items, "mock")
+  }
+  return finalizeReview(getMockReview(items), items, "mock")
+}
+
 export async function startReview(items: ReviewDocumentInput[]): Promise<ReviewResponse> {
   if (USE_MOCK_DATA) {
-    return {
-      source: "mock",
-      data: getMockReview(items),
-    }
+    return fallbackReview(items)
   }
 
   try {
     const content = await requestCompletion(SYSTEM_PROMPT, buildUserPrompt(items), REVIEW_TIMEOUT_MS)
-    return { source: "api", data: parseReviewContent(content) }
+    return finalizeReview(parseReviewContent(content), items, "api")
   } catch {
-    return {
-      source: "mock",
-      data: getMockReview(items),
-    }
+    return fallbackReview(items)
   }
 }
 
