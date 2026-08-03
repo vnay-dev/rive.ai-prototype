@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
 import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom"
-import { Astroid, Check, CircleAlert, List, LoaderCircle, Pause, Play, Trash2, Upload, X } from "lucide-react"
+import { Astroid, List, LoaderCircle, Pause, Play, Trash2, Upload, X } from "lucide-react"
 
 import { AppHeader } from "@/components/layout/app-header"
 import { GridLayout } from "@/components/layout/grid-layout"
