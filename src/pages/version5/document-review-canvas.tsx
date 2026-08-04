@@ -37,6 +37,7 @@ type DocumentReviewCanvasProps = {
 
 const BUBBLE_GAP = 8
 const EDGE = 8
+const SHORTCUT_HINT_MS = 5500
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -65,6 +66,8 @@ export function DocumentReviewCanvas({
   const [highlightRect, setHighlightRect] = useState<HighlightRect | null>(null)
   const [bubbleOpen, setBubbleOpen] = useState(true)
   const [bubbleSize, setBubbleSize] = useState({ width: 360, height: 40 })
+  const [shortcutHintOpen, setShortcutHintOpen] = useState(true)
+  const [shortcutHintFading, setShortcutHintFading] = useState(true)
 
   const activeOccurrence = occurrences[activeIndex] ?? null
   const activeDecision = activeOccurrence ? job.decisions[activeOccurrence.key] : undefined
@@ -81,7 +84,38 @@ export function DocumentReviewCanvas({
     ))
     setActiveIndex(firstOpen >= 0 ? firstOpen : 0)
     setBubbleOpen(true)
+    setShortcutHintOpen(true)
+    setShortcutHintFading(true)
   }, [job.id]) // eslint-disable-line react-hooks/exhaustive-deps -- resume once per job open
+
+  useEffect(() => {
+    if (!shortcutHintOpen || summaryOpen) return
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    let fadeOutTimer = 0
+    let hideTimer = 0
+
+    // Seamless fade in on the next frames.
+    const enterFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        setShortcutHintFading(false)
+      })
+    })
+
+    fadeOutTimer = window.setTimeout(() => {
+      setShortcutHintFading(true)
+    }, reduceMotion ? SHORTCUT_HINT_MS : SHORTCUT_HINT_MS - 480)
+    hideTimer = window.setTimeout(() => {
+      setShortcutHintOpen(false)
+      setShortcutHintFading(false)
+    }, SHORTCUT_HINT_MS)
+
+    return () => {
+      window.cancelAnimationFrame(enterFrame)
+      window.clearTimeout(fadeOutTimer)
+      window.clearTimeout(hideTimer)
+    }
+  }, [job.id, shortcutHintOpen, summaryOpen])
 
   useEffect(() => {
     if (!activeOccurrence) {
@@ -179,15 +213,15 @@ export function DocumentReviewCanvas({
         if (tagName === "INPUT" || tagName === "TEXTAREA" || target.isContentEditable) return
       }
 
-      if (event.key === "a" || event.key === "A") {
-        event.preventDefault()
-        handleDecide("approved")
-      } else if (event.key === "r" || event.key === "R") {
+      if (event.key === "1") {
         event.preventDefault()
         handleDecide("rejected")
-      } else if (event.key === "n" || event.key === "N") {
+      } else if (event.key === "2") {
         event.preventDefault()
         handleDecide("needs-review")
+      } else if (event.key === "3") {
+        event.preventDefault()
+        handleDecide("approved")
       } else if (event.key === "Enter") {
         event.preventDefault()
         if (activeDecision && activeOccurrence) {
@@ -196,10 +230,10 @@ export function DocumentReviewCanvas({
       } else if (event.key === "Escape" && bubbleOpen) {
         event.preventDefault()
         setBubbleOpen(false)
-      } else if (event.key === "ArrowRight") {
+      } else if (event.key === "ArrowDown") {
         event.preventDefault()
         goToIndex(Math.min(activeIndex + 1, occurrences.length - 1))
-      } else if (event.key === "ArrowLeft") {
+      } else if (event.key === "ArrowUp") {
         event.preventDefault()
         goToIndex(Math.max(activeIndex - 1, 0))
       }
@@ -254,6 +288,50 @@ export function DocumentReviewCanvas({
     <section className="document-review-canvas" aria-label="Document review">
       <div className="document-review-stage" ref={stageRef}>
         <PdfViewerPanel
+          bodyOverlay={
+            shortcutHintOpen && !summaryOpen ? (
+              <aside
+                aria-label="Keyboard shortcuts: 1 reject, 2 mark for review, 3 approve, up previous occurrence, down next occurrence"
+                className={`document-review-shortcut-hint${shortcutHintFading ? " is-fading" : ""}`}
+              >
+                <div className="document-review-shortcut-hint-group" title="Reject">
+                  <kbd>1</kbd>
+                  <span>Reject</span>
+                </div>
+                <div className="document-review-shortcut-hint-group" title="Mark for review">
+                  <kbd>2</kbd>
+                  <span>Mark</span>
+                </div>
+                <div className="document-review-shortcut-hint-group" title="Approve">
+                  <kbd>3</kbd>
+                  <span>Approve</span>
+                </div>
+                <span aria-hidden="true" className="document-review-shortcut-hint-sep" />
+                <div className="document-review-shortcut-hint-group" title="Previous occurrence">
+                  <kbd>↑</kbd>
+                  <span>Prev</span>
+                </div>
+                <div className="document-review-shortcut-hint-group" title="Next occurrence">
+                  <kbd>↓</kbd>
+                  <span>Next</span>
+                </div>
+                <button
+                  aria-label="Dismiss shortcuts"
+                  className="document-review-shortcut-hint-close"
+                  onClick={() => {
+                    setShortcutHintFading(true)
+                    window.setTimeout(() => {
+                      setShortcutHintOpen(false)
+                      setShortcutHintFading(false)
+                    }, 320)
+                  }}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={12} strokeWidth={2.2} />
+                </button>
+              </aside>
+            ) : null
+          }
           canGoNext={activeIndex < occurrences.length - 1}
           canGoPrevious={activeIndex > 0}
           documentName={activeOccurrence.documentName}

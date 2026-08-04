@@ -1,4 +1,4 @@
-I had a round 1 feedback review with the team and these are the feedback points that they shared that we need to fix:
+Lets fix this:
 
 1. Currently you have a sidebar with New job, the logo, completed jobs etc. This layout is exactly like a AI chat application layout like ChatGPT or Claude which is not what we want. Our product uses table format inside which we show the current review jobs and their current status, so try to follow the same.
    → Fix: Replace chat-style sidebar with a jobs table (name, status, progress, dates). Job detail becomes a separate page, not a sidebar thread list.

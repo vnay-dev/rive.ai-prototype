@@ -4031,6 +4031,122 @@
     overflow: hidden;
   }
 
+  .document-review-shortcut-hint {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100% - 140px);
+    height: 36px;
+    padding: 0 6px 0 10px;
+    border: 1px solid color-mix(in srgb, #13439a 14%, var(--border));
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--background) 92%, transparent);
+    box-shadow: 0 4px 16px color-mix(in srgb, #0f172a 10%, transparent);
+    backdrop-filter: blur(10px);
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity .5s ease,
+      transform .5s ease;
+  }
+
+  .document-review-shortcut-hint.is-fading {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+  }
+
+  .document-review-shortcut-hint-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .document-review-shortcut-hint-group span {
+    letter-spacing: -.01em;
+  }
+
+  .document-review-shortcut-hint-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    flex: 0 0 auto;
+  }
+
+  .document-review-shortcut-hint-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    color: var(--muted-foreground);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .document-review-shortcut-hint-close:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, #1c1c1c 6%, transparent);
+  }
+
+  .document-review-shortcut-hint-close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .document-review-shortcut-hint kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px 1px;
+    border: 1px solid color-mix(in srgb, #1c1c1c 22%, var(--border));
+    border-top-color: color-mix(in srgb, #1c1c1c 18%, #d4d4d8);
+    border-bottom-width: 2.5px;
+    border-bottom-color: color-mix(in srgb, #1c1c1c 28%, var(--border));
+    border-radius: 6px;
+    color: var(--foreground);
+    background:
+      linear-gradient(
+        to bottom,
+        #ffffff 0%,
+        color-mix(in srgb, #1c1c1c 2%, var(--background)) 45%,
+        color-mix(in srgb, #1c1c1c 7%, var(--background)) 100%
+      );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / .95),
+      inset 0 2px 0 rgb(255 255 255 / .45),
+      inset 0 -1px 0 rgb(15 23 42 / .04),
+      0 1px 1px rgb(15 23 42 / .08),
+      0 2px 3px rgb(15 23 42 / .05);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1;
+    text-shadow: 0 1px 0 rgb(255 255 255 / .5);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .document-review-shortcut-hint,
+    .document-review-shortcut-hint.is-fading {
+      transition: none;
+      transform: none;
+    }
+  }
+
   .pdf-viewer-panel.is-canvas {
     position: absolute;
     inset: 0;
@@ -5125,16 +5241,6 @@
     margin-left: 2px;
   }
 
-  .pdf-viewer-highlight-toggle.is-on {
-    border-color: color-mix(in oklab, #ca8a04 45%, var(--border));
-    background: color-mix(in oklab, #facc15 18%, var(--background));
-    color: #92400e;
-  }
-
-  .pdf-viewer-highlight-toggle.is-on:hover:not(:disabled) {
-    background: color-mix(in oklab, #facc15 28%, var(--background));
-  }
-
   .pdf-viewer-body {
     position: relative;
     flex: 1;
@@ -5226,11 +5332,6 @@
     background: rgb(250 204 21 / .32);
     box-shadow: inset 0 0 0 1.5px rgb(180 83 9 / .65);
     animation: pdf-viewer-highlight-pulse 1.15s ease-in-out 2;
-  }
-
-  .pdf-viewer-panel.highlights-off .pdf-viewer-highlight,
-  .pdf-viewer-panel.highlights-off .pdf-viewer-minimap-mark {
-    opacity: 0;
   }
 
   @keyframes pdf-viewer-highlight-pulse {
