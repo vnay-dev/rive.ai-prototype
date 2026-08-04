@@ -3758,20 +3758,17 @@
     background: color-mix(in srgb, #13439a 6%, var(--background));
   }
 
-  .review-summary-dialog-tag {
-    padding: 0;
-    border: 0;
-    color: var(--foreground);
-    background: transparent;
-    font: inherit;
-    font-weight: 600;
-    text-align: left;
-    cursor: pointer;
+  .review-summary-dialog-row:hover td {
+    background: color-mix(in srgb, #1c1c1c 2.5%, var(--background));
   }
 
-  .review-summary-dialog-tag:hover {
-    color: #13439a;
-    text-decoration: underline;
+  .review-summary-dialog-row.is-active:hover td {
+    background: color-mix(in srgb, #13439a 8%, var(--background));
+  }
+
+  .review-summary-dialog-tag {
+    color: var(--foreground);
+    font-weight: 600;
   }
 
   .review-summary-dialog-status {
@@ -3790,6 +3787,54 @@
 
   .review-summary-dialog-status.is-needs-review {
     color: #C47A1A;
+  }
+
+  .review-summary-dialog-status.is-open {
+    color: var(--muted-foreground);
+  }
+
+  .review-summary-dialog-jump-cell {
+    width: 1%;
+    padding-right: 8px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .review-summary-dialog-jump {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    color: var(--muted-foreground);
+    background: transparent;
+    opacity: 0;
+    pointer-events: none;
+    cursor: pointer;
+    transition:
+      opacity .12s ease,
+      background-color .12s ease,
+      color .12s ease;
+  }
+
+  .review-summary-dialog-row:hover .review-summary-dialog-jump,
+  .review-summary-dialog-row:focus-within .review-summary-dialog-jump,
+  .review-summary-dialog-jump:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .review-summary-dialog-jump:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, #1c1c1c 6%, transparent);
+  }
+
+  .review-summary-dialog-jump:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
   }
 
   .review-summary-dialog-pagination {
@@ -3907,25 +3952,28 @@
   }
 
   .document-review-bubble.is-collapsed {
-    width: 34px;
-    height: 34px;
+    width: auto;
+    height: auto;
   }
 
   .document-review-pin {
+    position: relative;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border: 1px solid var(--background);
-    border-radius: 999px;
+    gap: 5px;
+    max-width: min(220px, calc(100vw - 48px));
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid color-mix(in srgb, #fff 35%, transparent);
+    border-radius: 8px;
     color: #fff;
     background: #3b6fd4;
     box-shadow:
-      0 0 0 1px color-mix(in srgb, #13439a 28%, transparent),
-      0 4px 12px color-mix(in srgb, #0f172a 18%, transparent);
+      0 0 0 1px color-mix(in srgb, #13439a 22%, transparent),
+      0 4px 12px color-mix(in srgb, #0f172a 16%, transparent);
     cursor: pointer;
+    overflow: visible;
+    isolation: isolate;
   }
 
   .document-review-bubble.is-approved .document-review-pin {
@@ -3940,26 +3988,59 @@
     background: #c47a1a;
   }
 
+  .document-review-pin-icon {
+    flex: 0 0 auto;
+  }
+
+  .document-review-pin-icon.is-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .document-review-pin-tag {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    line-height: 1;
+  }
+
+  .document-review-pin-tail {
+    position: absolute;
+    left: 14px;
+    z-index: -1;
+    width: 8px;
+    height: 8px;
+    background: inherit;
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  .document-review-bubble.is-below .document-review-pin-tail {
+    top: -3px;
+  }
+
+  .document-review-bubble.is-above .document-review-pin-tail {
+    bottom: -3px;
+  }
+
   .document-review-pin:hover {
-    transform: scale(1.06);
+    filter: brightness(1.05);
   }
 
   .document-review-pin:focus-visible,
   .document-review-decision:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
-  }
-
-  .document-review-pin-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    letter-spacing: -0.02em;
   }
 
   .document-review-bubble-row {

@@ -34,7 +34,6 @@ type DocumentReviewCanvasProps = {
   findDocumentFile: (items: RuntimeUploadItem[], documentName: string) => File | null
 }
 
-const PIN_SIZE = 28
 const BUBBLE_GAP = 8
 const EDGE = 8
 
@@ -69,10 +68,12 @@ export function DocumentReviewCanvas({
   const activeDecision = activeOccurrence ? job.decisions[activeOccurrence.key] : undefined
   const onSetViewerRef = useRef(onSetViewer)
   onSetViewerRef.current = onSetViewer
+  const markedPassSeenRef = useRef<Set<string>>(new Set())
 
   // Start (or resume) on the first undecided occurrence.
   useEffect(() => {
     if (occurrences.length === 0) return
+    markedPassSeenRef.current = new Set()
     const firstOpen = occurrences.findIndex((occurrence) => (
       !job.decisions[occurrence.key]
     ))
@@ -113,18 +114,47 @@ export function DocumentReviewCanvas({
     setBubbleOpen(true)
   }
 
-  function advanceAfterDone(justDecidedKey?: string) {
+  function decisionFor(key: string, justDecidedKey?: string, justDecision?: TagDecision) {
+    if (justDecidedKey && key === justDecidedKey && justDecision !== undefined) {
+      return justDecision
+    }
+    return job.decisions[key]
+  }
+
+  /** Prefer next Open; when none left, revisit Marked-for-review once each, then Summary. */
+  function advanceAfterDone(justDecidedKey?: string, justDecision?: TagDecision) {
     if (occurrences.length === 0) return
     const from = activeIndex
+
     for (let offset = 1; offset <= occurrences.length; offset += 1) {
       const index = (from + offset) % occurrences.length
       const key = occurrences[index].key
-      if (key === justDecidedKey) continue
-      if (!job.decisions[key]) {
+      if (!decisionFor(key, justDecidedKey, justDecision)) {
+        markedPassSeenRef.current = new Set()
         goToIndex(index)
         return
       }
     }
+
+    // No Open left — circle Marked for review (one pass), then Summary.
+    if (justDecidedKey) {
+      const leaving = decisionFor(justDecidedKey, justDecidedKey, justDecision)
+      if (leaving === "needs-review") {
+        markedPassSeenRef.current.add(justDecidedKey)
+      }
+    }
+
+    for (let offset = 1; offset <= occurrences.length; offset += 1) {
+      const index = (from + offset) % occurrences.length
+      const key = occurrences[index].key
+      if (markedPassSeenRef.current.has(key)) continue
+      if (decisionFor(key, justDecidedKey, justDecision) === "needs-review") {
+        goToIndex(index)
+        return
+      }
+    }
+
+    markedPassSeenRef.current = new Set()
     setBubbleOpen(false)
     onSummaryOpenChange(true)
   }
@@ -134,7 +164,7 @@ export function DocumentReviewCanvas({
     const key = activeOccurrence.key
     setBubbleOpen(true)
     onDecideTag(key, decision)
-    advanceAfterDone(key)
+    advanceAfterDone(key, decision)
   }
 
   useEffect(() => {
@@ -158,7 +188,9 @@ export function DocumentReviewCanvas({
         handleDecide("needs-review")
       } else if (event.key === "Enter") {
         event.preventDefault()
-        if (activeDecision) advanceAfterDone()
+        if (activeDecision && activeOccurrence) {
+          advanceAfterDone(activeOccurrence.key, activeDecision)
+        }
       } else if (event.key === "Escape" && bubbleOpen) {
         event.preventDefault()
         setBubbleOpen(false)
@@ -202,17 +234,16 @@ export function DocumentReviewCanvas({
     width: 40,
     height: 20,
   }
-  const floatingWidth = bubbleOpen ? bubbleSize.width : PIN_SIZE
-  const floatingHeight = bubbleOpen ? bubbleSize.height : PIN_SIZE
+  const floatingWidth = bubbleSize.width
+  const floatingHeight = bubbleSize.height
 
   const spaceBelow = stageHeight - (anchor.top + anchor.height) - EDGE
   const placeBelow = spaceBelow >= floatingHeight + BUBBLE_GAP
   const rawTop = placeBelow
     ? anchor.top + anchor.height + BUBBLE_GAP
     : anchor.top - floatingHeight - BUBBLE_GAP
-  const rawLeft = bubbleOpen
-    ? anchor.left
-    : anchor.left + anchor.width + BUBBLE_GAP
+  // Anchor like a tooltip under/above the highlight.
+  const rawLeft = anchor.left
 
   const bubbleLeft = clamp(rawLeft, EDGE, Math.max(EDGE, stageWidth - floatingWidth - EDGE))
   const bubbleTop = clamp(rawTop, EDGE, Math.max(EDGE, stageHeight - floatingHeight - EDGE))
@@ -237,7 +268,7 @@ export function DocumentReviewCanvas({
         />
 
         <div
-          className={`document-review-bubble${decisionClass}${bubbleOpen ? " is-expanded" : " is-collapsed"}`}
+          className={`document-review-bubble${decisionClass}${bubbleOpen ? " is-expanded" : " is-collapsed"}${placeBelow ? " is-below" : " is-above"}`}
           ref={bubbleRef}
           style={{ left: bubbleLeft, top: bubbleTop }}
         >
@@ -247,17 +278,18 @@ export function DocumentReviewCanvas({
               aria-label={`${tag}: ${pinLabel}. Open decision`}
               className="document-review-pin"
               onClick={() => setBubbleOpen(true)}
+              title={tag}
               type="button"
             >
-              <span aria-hidden="true" className="document-review-pin-mark">
-                {activeDecision === "approved"
-                  ? <Check size={15} strokeWidth={2.6} />
-                  : activeDecision === "rejected"
-                    ? <X size={15} strokeWidth={2.6} />
-                    : activeDecision === "needs-review"
-                      ? "?"
-                      : activeIndex + 1}
-              </span>
+              {activeDecision === "approved" ? (
+                <Check aria-hidden="true" className="document-review-pin-icon" size={13} strokeWidth={2.6} />
+              ) : activeDecision === "rejected" ? (
+                <X aria-hidden="true" className="document-review-pin-icon" size={13} strokeWidth={2.6} />
+              ) : activeDecision === "needs-review" ? (
+                <span aria-hidden="true" className="document-review-pin-icon is-mark">?</span>
+              ) : null}
+              <span className="document-review-pin-tag">{tag}</span>
+              <span aria-hidden="true" className="document-review-pin-tail" />
             </button>
           ) : (
             <div

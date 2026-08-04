@@ -6,7 +6,6 @@ import { generateJobName, startReview } from "@/lib/openrouter"
 import {
   createEmptyJob,
   createJobNameFromFile,
-  getDecidedReviewProgress,
   getResolvedReviewProgress,
   loadWorkspace,
   normalizeViewer,
@@ -535,12 +534,13 @@ export function useReviewJobs() {
         decisions: next,
         reviewStartedAt: job.reviewStartedAt ?? Date.now(),
       }
-      const { decided, total } = getDecidedReviewProgress(draft)
-      const isComplete = total > 0 && decided === total
+      // Complete only when every occurrence is approved or rejected.
+      // Marked-for-review stays on the canvas so circling can revisit them.
+      const { resolved, total } = getResolvedReviewProgress(draft)
+      const isComplete = total > 0 && resolved === total
 
       return {
         ...draft,
-        // Auto-complete when every occurrence has a decision; reopen if one is cleared.
         completedAt: isComplete ? (job.completedAt ?? Date.now()) : null,
         viewer: isComplete ? null : job.viewer,
       }

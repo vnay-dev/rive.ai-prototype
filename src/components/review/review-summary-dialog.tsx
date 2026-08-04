@@ -1,8 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { ArrowUpRight, ChevronLeft, ChevronRight, X } from "lucide-react"
 
 import { ExportMenu } from "@/components/review/export-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useModalFocus } from "@/hooks/use-modal-focus"
 import type { ReviewExportRow } from "@/lib/export-review"
 import type { TagDecision, TagOccurrence } from "@/lib/review"
@@ -72,10 +73,8 @@ export function ReviewSummaryDialog({
   }, [decisions, occurrences])
 
   const tableRows = useMemo(
-    () => occurrences
-      .map((occurrence, index) => ({ occurrence, index }))
-      .filter(({ occurrence }) => Boolean(decisions[occurrence.key])),
-    [decisions, occurrences],
+    () => occurrences.map((occurrence, index) => ({ occurrence, index })),
+    [occurrences],
   )
 
   const pageCount = Math.max(1, Math.ceil(tableRows.length / ROWS_PER_PAGE))
@@ -96,6 +95,12 @@ export function ReviewSummaryDialog({
     setPage(Math.floor(activeIndex / ROWS_PER_PAGE))
   }, [activeKey, tableRows])
 
+  const leftoverNote = counts.open > 0
+    ? `${counts.open} open — jump back anytime, or continue reviewing.`
+    : counts.needsReview > 0
+      ? `${counts.needsReview} marked for review — revisit anytime.`
+      : null
+
   return createPortal(
     <div
       className="review-summary-dialog-scrim"
@@ -115,6 +120,7 @@ export function ReviewSummaryDialog({
             <h2 id={titleId}>Summary</h2>
             <p className="review-summary-dialog-lede">
               {counts.decided} of {counts.total} occurrences reviewed
+              {leftoverNote ? ` · ${leftoverNote}` : ""}
             </p>
           </div>
           <button
@@ -155,13 +161,16 @@ export function ReviewSummaryDialog({
                 <th scope="col">Document</th>
                 <th scope="col">Page</th>
                 <th scope="col">Status</th>
+                <th scope="col">
+                  <span className="sr-only">Go to finding</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {tableRows.length === 0 ? (
                 <tr>
-                  <td className="review-summary-dialog-empty" colSpan={4}>
-                    No reviewed occurrences yet
+                  <td className="review-summary-dialog-empty" colSpan={5}>
+                    No occurrences yet
                   </td>
                 </tr>
               ) : (
@@ -169,24 +178,35 @@ export function ReviewSummaryDialog({
                   const decision = decisions[occurrence.key]
                   return (
                     <tr
-                      className={occurrence.key === activeKey ? "is-active" : undefined}
+                      className={`review-summary-dialog-row${occurrence.key === activeKey ? " is-active" : ""}`}
                       key={occurrence.key}
                     >
                       <td>
-                        <button
-                          className="review-summary-dialog-tag"
-                          onClick={() => onSelectOccurrence(index)}
-                          type="button"
-                        >
-                          {occurrence.tag}
-                        </button>
+                        <span className="review-summary-dialog-tag">{occurrence.tag}</span>
                       </td>
                       <td title={occurrence.documentName}>{occurrence.documentName}</td>
                       <td>{occurrence.page}</td>
                       <td>
-                        <span className={`review-summary-dialog-status${decision ? ` is-${decision}` : ""}`}>
+                        <span
+                          className={`review-summary-dialog-status${decision ? ` is-${decision}` : " is-open"}`}
+                        >
                           {statusLabel(decision)}
                         </span>
+                      </td>
+                      <td className="review-summary-dialog-jump-cell">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              aria-label={`Go to ${occurrence.tag} on page ${occurrence.page}`}
+                              className="review-summary-dialog-jump"
+                              onClick={() => onSelectOccurrence(index)}
+                              type="button"
+                            >
+                              <ArrowUpRight aria-hidden="true" size={15} strokeWidth={2.2} />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Go to this finding</TooltipContent>
+                        </Tooltip>
                       </td>
                     </tr>
                   )
