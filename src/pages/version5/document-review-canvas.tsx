@@ -29,6 +29,7 @@ type DocumentReviewCanvasProps = {
   exportRows: ReviewExportRow[]
   onSummaryOpenChange: (open: boolean) => void
   onDecideTag: (occurrenceKey: string, decision: TagDecision) => void
+  onDecideMany: (occurrenceKeys: string[], decision: TagDecision) => void
   onSetViewer: (viewer: ReviewViewerTarget | null) => void
   onMarkExported: () => void
   findDocumentFile: (items: RuntimeUploadItem[], documentName: string) => File | null
@@ -49,6 +50,7 @@ export function DocumentReviewCanvas({
   exportRows,
   onSummaryOpenChange,
   onDecideTag,
+  onDecideMany,
   onSetViewer,
   onMarkExported,
   findDocumentFile,
@@ -346,6 +348,7 @@ export function DocumentReviewCanvas({
           jobName={jobName}
           occurrences={occurrences}
           onClose={() => onSummaryOpenChange(false)}
+          onDecideMany={onDecideMany}
           onExported={onMarkExported}
           onSelectOccurrence={(index) => {
             goToIndex(index)

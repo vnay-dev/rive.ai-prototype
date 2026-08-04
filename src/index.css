@@ -3700,21 +3700,86 @@
     padding: 0 20px 16px;
   }
 
-  .review-summary-dialog-stats span {
+  .review-summary-dialog-stat {
     display: grid;
     gap: 2px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
     color: var(--muted-foreground);
+    background: transparent;
+    font: inherit;
     font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      background-color .12s ease,
+      border-color .12s ease,
+      color .12s ease;
   }
 
-  .review-summary-dialog-stats strong {
+  .review-summary-dialog-stat:hover,
+  .review-summary-dialog-stat.is-active {
+    border-color: color-mix(in srgb, #13439a 35%, var(--border));
+    background: color-mix(in srgb, #13439a 7%, transparent);
+    color: #13439a;
+  }
+
+  .review-summary-dialog-stat:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .review-summary-dialog-stat strong {
     color: var(--foreground);
     font-size: 18px;
     font-weight: 650;
     font-variant-numeric: tabular-nums;
+  }
+
+  .review-summary-dialog-stat:hover strong,
+  .review-summary-dialog-stat.is-active strong {
+    color: inherit;
+  }
+
+  .review-summary-dialog-toolbar {
+    flex-shrink: 0;
+    padding: 0 20px 12px;
+  }
+
+  .review-summary-dialog-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--muted-foreground);
+    background: var(--background);
+  }
+
+  .review-summary-dialog-search:focus-within {
+    border-color: color-mix(in srgb, #13439a 40%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, #13439a 12%, transparent);
+  }
+
+  .review-summary-dialog-search input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    color: var(--foreground);
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+
+  .review-summary-dialog-search input::placeholder {
+    color: var(--muted-foreground);
   }
 
   .review-summary-dialog-body {
@@ -3726,20 +3791,45 @@
     padding: 0 20px 8px;
   }
 
+  .review-summary-dialog-table-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+    border-radius: 10px;
+  }
+
   .review-summary-dialog-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
   }
 
-  .review-summary-dialog-table th {
+  .review-summary-dialog-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
-    background: var(--background);
+    background: var(--muted);
     color: var(--muted-foreground);
     font-size: 12px;
     font-weight: 550;
     text-align: left;
+  }
+
+  .review-summary-dialog-check-cell {
+    width: 1%;
+    padding-right: 4px;
+    vertical-align: middle;
+  }
+
+  .review-summary-dialog-check-cell input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: #13439a;
+    cursor: pointer;
   }
 
   .review-summary-dialog-table td {
@@ -3758,12 +3848,17 @@
     background: color-mix(in srgb, #13439a 6%, var(--background));
   }
 
+  .review-summary-dialog-row.is-selected td {
+    background: color-mix(in srgb, #13439a 8%, var(--background));
+  }
+
   .review-summary-dialog-row:hover td {
     background: color-mix(in srgb, #1c1c1c 2.5%, var(--background));
   }
 
-  .review-summary-dialog-row.is-active:hover td {
-    background: color-mix(in srgb, #13439a 8%, var(--background));
+  .review-summary-dialog-row.is-active:hover td,
+  .review-summary-dialog-row.is-selected:hover td {
+    background: color-mix(in srgb, #13439a 10%, var(--background));
   }
 
   .review-summary-dialog-tag {
@@ -3883,6 +3978,17 @@
     flex-shrink: 0;
     padding: 14px 20px 18px;
     border-top: 1px solid var(--border);
+  }
+
+  .review-summary-dialog.is-selecting .review-summary-dialog-footer {
+    justify-content: space-between;
+  }
+
+  .review-summary-dialog-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
   }
 
   .review-summary-dialog-footer .primary-button,
@@ -5263,7 +5369,7 @@
   .confirm-dialog-scrim {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    z-index: 55;
     display: grid;
     place-items: center;
     padding: 24px;

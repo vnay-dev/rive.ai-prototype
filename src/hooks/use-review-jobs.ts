@@ -547,6 +547,35 @@ export function useReviewJobs() {
     })
   }, [updateJob])
 
+  /** Set many occurrence decisions at once (does not toggle). */
+  const decideMany = useCallback((
+    jobId: number,
+    occurrenceKeys: string[],
+    decision: TagDecision,
+  ) => {
+    if (occurrenceKeys.length === 0) return
+    updateJob(jobId, (job) => {
+      const next = { ...job.decisions }
+      for (const key of occurrenceKeys) {
+        next[key] = decision
+      }
+
+      const draft = {
+        ...job,
+        decisions: next,
+        reviewStartedAt: job.reviewStartedAt ?? Date.now(),
+      }
+      const { resolved, total } = getResolvedReviewProgress(draft)
+      const isComplete = total > 0 && resolved === total
+
+      return {
+        ...draft,
+        completedAt: isComplete ? (job.completedAt ?? Date.now()) : null,
+        viewer: isComplete ? null : job.viewer,
+      }
+    })
+  }, [updateJob])
+
   const markJobComplete = useCallback((jobId: number) => {
     updateJob(jobId, (job) => {
       const { resolved, total } = getResolvedReviewProgress(job)
@@ -613,6 +642,7 @@ export function useReviewJobs() {
     startJobReview,
     toggleTag,
     decideTag,
+    decideMany,
     markJobComplete,
     markJobExported,
     setViewer,

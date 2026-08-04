@@ -95,6 +95,7 @@ type UploadViewProps = {
   onStartReview: () => void
   onMarkExported: () => void
   onDecideTag: (occurrenceKey: string, decision: TagDecision) => void
+  onDecideMany: (occurrenceKeys: string[], decision: TagDecision) => void
   onSetViewer: (viewer: ReviewViewerTarget | null) => void
 }
 
@@ -174,6 +175,7 @@ function UploadView({
   onStartReview,
   onMarkExported,
   onDecideTag,
+  onDecideMany,
   onSetViewer,
 }: UploadViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -663,6 +665,7 @@ function UploadView({
           findDocumentFile={findDocumentFile}
           job={job}
           jobName={job.name}
+          onDecideMany={onDecideMany}
           onDecideTag={onDecideTag}
           onMarkExported={onMarkExported}
           onSetViewer={onSetViewer}
@@ -1007,6 +1010,7 @@ export function Version5Workspace() {
     removeUploadItem,
     startJobReview,
     decideTag,
+    decideMany,
     markJobExported,
     setViewer,
   } = useOutletContext<Version5JobsContext>()
@@ -1066,6 +1070,7 @@ export function Version5Workspace() {
               job={activeJob}
               nextJob={nextJob}
               onAddUploads={(entries) => addUploads(activeJob.id, entries)}
+              onDecideMany={(occurrenceKeys, decision) => decideMany(activeJob.id, occurrenceKeys, decision)}
               onDecideTag={(occurrenceKey, decision) => decideTag(activeJob.id, occurrenceKey, decision)}
               onGoToJob={(id) => navigate(`/version5/jobs/${id}`)}
               onMarkExported={() => markJobExported(activeJob.id)}
