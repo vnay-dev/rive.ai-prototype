@@ -1718,6 +1718,10 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .upload-extract-footer-count.is-error {
+    color: var(--destructive);
+  }
+
   .review-complete-footer-progress {
     display: inline-flex;
     align-items: center;
@@ -2823,6 +2827,156 @@
     text-decoration: none;
   }
 
+  .app-shell.version5 .review-jobs-menu {
+    position: relative;
+  }
+
+  .app-shell.version5 .review-jobs-menu-chevron {
+    flex: 0 0 auto;
+    margin-left: 1px;
+    color: var(--muted-foreground);
+    transition: transform .15s ease;
+  }
+
+  .app-shell.version5 .review-jobs-menu.is-open .review-jobs-menu-chevron {
+    transform: rotate(180deg);
+  }
+
+  .app-shell.version5 .review-jobs-menu-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: min(320px, calc(100vw - 24px));
+    max-height: min(360px, calc(100vh - 80px));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--background);
+    box-shadow:
+      0 1px 2px color-mix(in srgb, #0f172a 6%, transparent),
+      0 12px 28px color-mix(in srgb, #0f172a 12%, transparent);
+  }
+
+  .app-shell.version5 .review-jobs-menu-list {
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .app-shell.version5 .review-jobs-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 7px;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .app-shell.version5 .review-jobs-menu-item:hover,
+  .app-shell.version5 .review-jobs-menu-item:focus-visible {
+    background: color-mix(in srgb, #1c1c1c 5%, transparent);
+    outline: none;
+  }
+
+  .app-shell.version5 .review-jobs-menu-item.is-current {
+    background: transparent;
+  }
+
+  .app-shell.version5 .review-jobs-menu-item.is-current:hover,
+  .app-shell.version5 .review-jobs-menu-item.is-current:focus-visible {
+    background: color-mix(in srgb, #1c1c1c 5%, transparent);
+  }
+
+  .app-shell.version5 .review-jobs-menu-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    color: var(--muted-foreground);
+  }
+
+  .app-shell.version5 .review-jobs-menu-status-icon.is-completed {
+    color: #1E8846;
+  }
+
+  .app-shell.version5 .review-jobs-menu-status-icon.is-processing {
+    color: #13439a;
+  }
+
+  .app-shell.version5 .review-jobs-menu-status-icon.is-draft {
+    color: var(--muted-foreground);
+  }
+
+  .app-shell.version5 .review-jobs-menu-status-dot {
+    display: block;
+    box-sizing: border-box;
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background: #7BA3E0;
+  }
+
+  .app-shell.version5 .review-jobs-menu-status-dot.is-error {
+    background: var(--destructive);
+  }
+
+  .app-shell.version5 .review-jobs-menu-item-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 550;
+    letter-spacing: -.01em;
+    line-height: 1.3;
+  }
+
+  .app-shell.version5 .review-jobs-menu-footer {
+    flex: 0 0 auto;
+    padding: 6px;
+    border-top: 1px solid var(--border);
+    background: var(--background);
+  }
+
+  .app-shell.version5 .review-jobs-menu-footer-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 7px;
+    color: #13439a;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 550;
+    text-decoration: none;
+  }
+
+  .app-shell.version5 .review-jobs-menu-footer-link:hover,
+  .app-shell.version5 .review-jobs-menu-footer-link:focus-visible {
+    background: color-mix(in srgb, #1c1c1c 5%, transparent);
+    outline: none;
+  }
+
   .app-header-brand {
     display: inline-flex;
     align-items: center;
@@ -3046,8 +3200,8 @@
   }
 
   .app-shell.version5 .version5-jobs-status.is-completed {
-    background: #d8f3e3;
-    color: #168a42;
+    background: #D0F9E1;
+    color: #1E8846;
   }
 
   .app-shell.version5 .version5-jobs-status.is-error {
@@ -3094,7 +3248,13 @@
     text-align: right;
   }
 
-  .app-shell.version5 .version5-jobs-delete {
+  .app-shell.version5 .version5-jobs-menu {
+    position: relative;
+    display: inline-flex;
+    justify-content: flex-end;
+  }
+
+  .app-shell.version5 .version5-jobs-kebab {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3110,23 +3270,60 @@
     pointer-events: none;
     transition:
       opacity .12s ease,
-      color .12s ease;
+      color .12s ease,
+      background-color .12s ease;
   }
 
-  .app-shell.version5 .version5-jobs-delete:hover {
+  .app-shell.version5 .version5-jobs-kebab:hover,
+  .app-shell.version5 .version5-jobs-menu.is-open .version5-jobs-kebab {
     color: var(--foreground);
-    background: transparent;
+    background: color-mix(in srgb, #1c1c1c 5%, transparent);
   }
 
-  .app-shell.version5 .version5-jobs-delete:focus-visible {
+  .app-shell.version5 .version5-jobs-kebab:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 1px;
   }
 
-  .app-shell.version5 .version5-jobs-row:hover .version5-jobs-delete,
-  .app-shell.version5 .version5-jobs-delete:focus-visible {
+  .app-shell.version5 .version5-jobs-row:hover .version5-jobs-kebab,
+  .app-shell.version5 .version5-jobs-row:focus-within .version5-jobs-kebab,
+  .app-shell.version5 .version5-jobs-menu.is-open .version5-jobs-kebab,
+  .app-shell.version5 .version5-jobs-kebab:focus-visible {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .app-shell.version5 .version5-jobs-popover,
+  .version5-jobs-popover {
+    position: fixed;
+    z-index: 60;
+  }
+
+  .app-shell.version5 .version5-jobs-rename-input {
+    display: block;
+    width: min(100%, 360px);
+    margin: 0;
+    padding: 2px 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--foreground);
+    caret-color: var(--foreground);
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -.01em;
+    line-height: 1.3;
+    box-shadow: none;
+  }
+
+  .app-shell.version5 .version5-jobs-rename-input:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .app-shell.version5 .version5-jobs-row.is-editing {
+    cursor: default;
   }
 
   .app-shell.version5 .version5-jobs-empty {
@@ -3335,6 +3532,75 @@
     margin-bottom: 0;
   }
 
+  .app-shell.version5 .page-header-title-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .app-shell.version5 .page-header-title-row > h1 {
+    margin-top: 0;
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-shell.version5 .job-switcher-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+  }
+
+  .app-shell.version5 .job-switcher-tooltip-target {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  .app-shell.version5 .job-switcher-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, #1c1c1c 18%, transparent);
+    border-radius: 6px;
+    color: #4b5563;
+    background: transparent;
+    cursor: pointer;
+    transition:
+      background-color .15s ease,
+      border-color .15s ease,
+      color .15s ease;
+  }
+
+  .app-shell.version5 .job-switcher-button:hover:not(:disabled) {
+    color: #1c1c1c;
+    border-color: color-mix(in srgb, #1c1c1c 28%, transparent);
+    background: color-mix(in srgb, #1c1c1c 4%, transparent);
+  }
+
+  .app-shell.version5 .job-switcher-button:active:not(:disabled) {
+    background: color-mix(in srgb, #1c1c1c 7%, transparent);
+  }
+
+  .app-shell.version5 .job-switcher-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .app-shell.version5 .job-switcher-button:disabled {
+    opacity: .38;
+    cursor: not-allowed;
+  }
+
   /* Document-primary review canvas (feedback #5) */
   .app-shell.version5 .content-grid.upload-layout:has(.document-review-canvas) {
     gap: 16px;
@@ -3454,7 +3720,9 @@
   .review-summary-dialog-body {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     padding: 0 20px 8px;
   }
 
@@ -3465,9 +3733,6 @@
   }
 
   .review-summary-dialog-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
     padding: 10px 12px;
     border-bottom: 1px solid var(--border);
     background: var(--background);
@@ -3516,11 +3781,53 @@
   }
 
   .review-summary-dialog-status.is-approved {
-    color: #166534;
+    color: #1E8846;
   }
 
   .review-summary-dialog-status.is-rejected {
-    color: #9f1239;
+    color: #D64545;
+  }
+
+  .review-summary-dialog-status.is-needs-review {
+    color: #C47A1A;
+  }
+
+  .review-summary-dialog-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-shrink: 0;
+    padding: 12px 0 4px;
+  }
+
+  .review-summary-dialog-page-label {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .review-summary-dialog-page-button {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted-foreground);
+    background: var(--background);
+    cursor: pointer;
+  }
+
+  .review-summary-dialog-page-button:hover:not(:disabled) {
+    color: var(--foreground);
+    background: var(--muted);
+  }
+
+  .review-summary-dialog-page-button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
   }
 
   .review-summary-dialog-footer {
@@ -3531,6 +3838,39 @@
     flex-shrink: 0;
     padding: 14px 20px 18px;
     border-top: 1px solid var(--border);
+  }
+
+  .review-summary-dialog-footer .primary-button,
+  .review-summary-dialog-footer .export-excel-button {
+    color: #fff;
+    background: #13439a;
+  }
+
+  .review-summary-dialog-footer .primary-button:hover:not(:disabled),
+  .review-summary-dialog-footer .export-excel-button:hover:not(:disabled) {
+    background: color-mix(in srgb, #13439a 88%, #1c1c1c);
+  }
+
+  .review-summary-dialog-footer .primary-button:active:not(:disabled),
+  .review-summary-dialog-footer .export-excel-button:active:not(:disabled) {
+    background: color-mix(in srgb, #13439a 76%, #1c1c1c);
+  }
+
+  .review-summary-dialog-footer .secondary-button {
+    transition:
+      background-color .15s ease,
+      border-color .15s ease,
+      color .15s ease;
+  }
+
+  .review-summary-dialog-footer .secondary-button:hover:not(:disabled) {
+    border-color: color-mix(in srgb, #1c1c1c 28%, var(--border));
+    background: color-mix(in srgb, #1c1c1c 5%, transparent);
+  }
+
+  .review-summary-dialog-footer .secondary-button:active:not(:disabled) {
+    border-color: color-mix(in srgb, #1c1c1c 42%, var(--border));
+    background: color-mix(in srgb, #1c1c1c 9%, transparent);
   }
 
   .document-review-stage {
@@ -3567,18 +3907,18 @@
   }
 
   .document-review-bubble.is-collapsed {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
   }
 
   .document-review-pin {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     padding: 0;
-    border: 2px solid var(--background);
+    border: 1px solid var(--background);
     border-radius: 999px;
     color: #fff;
     background: #3b6fd4;
@@ -3614,10 +3954,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     line-height: 1;
+    letter-spacing: -0.02em;
   }
 
   .document-review-bubble-row {
@@ -3673,6 +4015,7 @@
     padding: 1px;
     border-radius: 8px;
     background: color-mix(in srgb, var(--muted) 55%, transparent);
+    isolation: isolate;
   }
 
   .document-review-bubble-close {
@@ -3700,16 +4043,25 @@
   }
 
   .document-review-decision {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 28px;
     min-height: 28px;
     padding: 0 9px;
     border: 0;
     border-radius: 7px;
     color: var(--muted-foreground);
     background: transparent;
+    font-family: var(--font-sans);
     font-size: 11px;
     font-weight: 550;
+    line-height: 1;
     cursor: pointer;
     white-space: nowrap;
+    /* Keep a stable layer so hover background + parent backdrop-filter don't nudge glyphs. */
+    transform: translateZ(0);
   }
 
   .document-review-decision.is-approved {
@@ -3721,15 +4073,26 @@
   }
 
   .document-review-decision:hover {
-    background: var(--background);
+    transform: translateZ(0);
+  }
+
+  .document-review-decision:active {
+    transform: translateZ(0);
   }
 
   .document-review-decision.is-approved:hover {
     color: #14532d;
+    background: #d8f3e3;
   }
 
   .document-review-decision.is-rejected:hover {
     color: #881337;
+    background: #fde2e1;
+  }
+
+  .document-review-decision.is-needs-review:hover {
+    color: #3f3f46;
+    background: color-mix(in srgb, #1c1c1c 7%, var(--background));
   }
 
   .document-review-decision.is-approved.is-active {
@@ -3743,12 +4106,8 @@
   }
 
   .document-review-decision.is-needs-review.is-active {
-    color: var(--muted-foreground);
-    background: var(--muted);
-  }
-
-  .review-summary-dialog-status.is-needs-review {
-    color: #92400e;
+    color: #3f3f46;
+    background: color-mix(in srgb, #1c1c1c 7%, var(--background));
   }
 
   @media (max-width: 720px) {
@@ -4165,6 +4524,11 @@
   .tag-decision-chip.is-needs-review {
     color: #9a5800;
     background: #fff2d9;
+  }
+
+  .tag-decision-chip.is-empty {
+    color: #5c6370;
+    background: #eceef1;
   }
 
   .tag-status-split {
@@ -4783,10 +5147,10 @@
     align-items: center;
     gap: 6px;
     padding: 7px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid color-mix(in srgb, #13439a 28%, var(--border));
     border-radius: 8px;
-    background: var(--background);
-    color: var(--foreground);
+    background: #13439a;
+    color: #fff;
     font: inherit;
     font-size: 13px;
     font-weight: 550;
@@ -4794,7 +5158,8 @@
   }
 
   .pdf-viewer-nav:hover:not(:disabled) {
-    background: var(--muted);
+    background: color-mix(in srgb, #13439a 88%, #1c1c1c);
+    border-color: color-mix(in srgb, #13439a 88%, #1c1c1c);
   }
 
   .pdf-viewer-nav:disabled {
@@ -5079,8 +5444,8 @@
   }
 
   .job-status-tag.is-completed {
-    color: #147244;
-    background: #daf5e6;
+    color: #1E8846;
+    background: #D0F9E1;
   }
 
   .job-status-tag.is-ready {

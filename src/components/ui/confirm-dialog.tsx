@@ -39,12 +39,19 @@ export function ConfirmDialog({
   })
 
   return createPortal(
-    <div className="confirm-dialog-scrim" role="presentation">
+    <div
+      className="confirm-dialog-scrim"
+      onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      role="presentation"
+    >
       <div
         aria-describedby={descriptionId}
         aria-labelledby={titleId}
         aria-modal="true"
         className="confirm-dialog"
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
         ref={dialogRef}
         role="alertdialog"
       >

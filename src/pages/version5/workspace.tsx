@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react"
-import { Link, useNavigate, useOutletContext, useParams } from "react-router-dom"
-import { Astroid, List, LoaderCircle, Pause, Play, Trash2, Upload, X } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from "react"
+import { useNavigate, useOutletContext, useParams } from "react-router-dom"
+import { ArrowLeft, ArrowRight, Astroid, LoaderCircle, Pause, Play, Trash2, Upload, X } from "lucide-react"
 
 import { AppHeader } from "@/components/layout/app-header"
 import { GridLayout } from "@/components/layout/grid-layout"
 import { ExportMenu } from "@/components/review/export-menu"
 import { ExtractionStatusMessage } from "@/components/review/processing-status"
+import { ReviewJobsMenu } from "@/components/review/review-jobs-menu"
 import { ReviewSummaryPanel } from "@/components/review/review-summary-panel"
 import { type TagDecision } from "@/components/review/tag-review-panel"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -15,9 +16,12 @@ import type { NewUploadEntry } from "@/hooks/use-review-jobs"
 import { buildReviewExportRows } from "@/lib/export-review"
 import { groupExtractedTags } from "@/lib/review"
 import { getPublicAssetUrl } from "@/lib/media-assets"
+import { resolvePageCount } from "@/lib/extract-document-text"
 import {
   getDecidedReviewProgress,
   getExtractionSummary,
+  isListedReviewJob,
+  sortJobs,
   type ReviewViewerTarget,
   type RuntimeReviewJob,
   type RuntimeUploadItem,
@@ -79,6 +83,9 @@ type PendingDuplicate = {
 
 type UploadViewProps = {
   job: RuntimeReviewJob
+  prevJob: RuntimeReviewJob | null
+  nextJob: RuntimeReviewJob | null
+  onGoToJob: (jobId: number) => void
   onAddUploads: (entries: NewUploadEntry[]) => string[]
   onPatchUploadItem: (
     itemId: string,
@@ -91,8 +98,76 @@ type UploadViewProps = {
   onSetViewer: (viewer: ReviewViewerTarget | null) => void
 }
 
+function JobNavButton({
+  direction,
+  target,
+  onGoToJob,
+}: {
+  direction: "prev" | "next"
+  target: RuntimeReviewJob | null
+  onGoToJob: (jobId: number) => void
+}) {
+  const isPrev = direction === "prev"
+  const label = isPrev ? "Previous review job" : "Next review job"
+  const emptyLabel = isPrev ? "No previous review job" : "No next review job"
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="job-switcher-tooltip-target">
+          <button
+            aria-label={label}
+            className="job-switcher-button"
+            disabled={!target}
+            onClick={() => target && onGoToJob(target.id)}
+            type="button"
+          >
+            {isPrev ? (
+              <ArrowLeft aria-hidden="true" size={15} strokeWidth={2} />
+            ) : (
+              <ArrowRight aria-hidden="true" size={15} strokeWidth={2} />
+            )}
+          </button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{target ? label : emptyLabel}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function JobTitleRow({
+  prevJob,
+  nextJob,
+  onGoToJob,
+  children,
+}: {
+  prevJob: RuntimeReviewJob | null
+  nextJob: RuntimeReviewJob | null
+  onGoToJob: (jobId: number) => void
+  children: ReactNode
+}) {
+  const canSwitchJobs = Boolean(prevJob || nextJob)
+
+  if (!canSwitchJobs) {
+    return children
+  }
+
+  return (
+    <div className="page-header-title-row" role="group" aria-label="Switch review job">
+      {children}
+      <span className="job-switcher-controls">
+        <JobNavButton direction="prev" onGoToJob={onGoToJob} target={prevJob} />
+        <JobNavButton direction="next" onGoToJob={onGoToJob} target={nextJob} />
+      </span>
+    </div>
+  )
+}
+
 function UploadView({
   job,
+  prevJob,
+  nextJob,
+  onGoToJob,
   onAddUploads,
   onPatchUploadItem,
   onRemoveUploadItem,
@@ -149,9 +224,11 @@ function UploadView({
   const documentCountLabel = `${job.items.length} ${job.items.length === 1 ? "document" : "documents"}`
   const extractFooterStatus = isExtracting
     ? null
-    : isUploading
-      ? `Uploading ${job.items.filter((item) => item.status === "uploading").length} of ${job.items.length}`
-      : `${documentCountLabel} uploaded`
+    : job.errorMessage
+      ? job.errorMessage
+      : isUploading
+        ? `Uploading ${job.items.filter((item) => item.status === "uploading").length} of ${job.items.length}`
+        : `${documentCountLabel} uploaded`
   const fallbackDocumentName = job.items[0]?.displayName ?? "Uploaded document"
 
   const tagGroups = useMemo(
@@ -160,7 +237,9 @@ function UploadView({
   )
 
   const isReviewComplete = Boolean(job.completedAt)
-  const isDocumentReview = job.phase === "results" && Boolean(job.review) && !isReviewComplete
+  const isResultsView = job.phase === "results" && Boolean(job.review)
+  const isDocumentReview = isResultsView && !isReviewComplete
+  const showJobSwitcher = isResultsView
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [statusAnnouncement, setStatusAnnouncement] = useState("")
   const prevPhaseRef = useRef(job.phase)
@@ -463,7 +542,9 @@ function UploadView({
         <header className="page-header version5-review-page-header">
           <div className="page-header-main">
             <div className="page-header-titles">
-              <h1>{job.name}</h1>
+              <JobTitleRow nextJob={nextJob} onGoToJob={onGoToJob} prevJob={prevJob}>
+                <h1>{job.name}</h1>
+              </JobTitleRow>
               <p className="page-subtitle" aria-live="polite">
                 <TickerNumber value={reviewProgress.decided} />
                 {" / "}
@@ -477,7 +558,7 @@ function UploadView({
                 onClick={() => setSummaryOpen((open) => !open)}
                 type="button"
               >
-                Summary
+                View summary
               </button>
             </div>
           </div>
@@ -486,17 +567,23 @@ function UploadView({
         <header className="page-header">
           <div className="page-header-main">
             <div className="page-header-titles">
-              <h1 className={isExtracting ? "page-title-with-spinner" : undefined}>
-                {isExtracting && (
-                  <LoaderCircle
-                    aria-hidden="true"
-                    className="page-title-spinner"
-                    size={22}
-                    strokeWidth={2.2}
-                  />
-                )}
-                {pageTitle}
-              </h1>
+              {showJobSwitcher ? (
+                <JobTitleRow nextJob={nextJob} onGoToJob={onGoToJob} prevJob={prevJob}>
+                  <h1>{pageTitle}</h1>
+                </JobTitleRow>
+              ) : (
+                <h1 className={isExtracting ? "page-title-with-spinner" : undefined}>
+                  {isExtracting && (
+                    <LoaderCircle
+                      aria-hidden="true"
+                      className="page-title-spinner"
+                      size={22}
+                      strokeWidth={2.2}
+                    />
+                  )}
+                  {pageTitle}
+                </h1>
+              )}
               {isExtracting ? (
                 <ExtractionStatusMessage
                   className="page-subtitle page-subtitle-extracting"
@@ -517,7 +604,7 @@ function UploadView({
                   </button>
                 </span>
               </div>
-            ) : job.phase === "results" && isReviewComplete ? (
+            ) : showJobSwitcher && isReviewComplete ? (
               <div className="page-header-actions">
                 <ExportMenu
                   jobName={job.name}
@@ -784,7 +871,10 @@ function UploadView({
       {showUploadFiles && (
         <div className="upload-extract-footer" aria-busy={isExtracting || undefined}>
           {extractFooterStatus ? (
-            <p className="upload-extract-footer-count">
+            <p
+              className={`upload-extract-footer-count${job.errorMessage && !isExtracting ? " is-error" : ""}`}
+              role={job.errorMessage && !isExtracting ? "alert" : undefined}
+            >
               {extractFooterStatus}
             </p>
           ) : (
@@ -902,38 +992,6 @@ function getUploadKind(file: File): UploadItemKind {
   return "file"
 }
 
-async function countFilePages(file: File) {
-  const name = file.name.toLowerCase()
-
-  if (/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(name)) return 1
-
-  if (name.endsWith(".pdf") || file.type === "application/pdf") {
-    try {
-      const buffer = await file.arrayBuffer()
-      const text = new TextDecoder("latin1").decode(buffer)
-      const matches = text.match(/\/Type\s*\/Page\b/g)
-      return Math.max(matches?.length ?? 1, 1)
-    } catch {
-      return Math.max(1, Math.round(file.size / 50_000))
-    }
-  }
-
-  if (name.endsWith(".zip") || file.type.includes("zip")) {
-    return Math.max(1, Math.round(file.size / 80_000))
-  }
-
-  if (/\.(docx?|xlsx?|pptx?|txt|csv|md)$/.test(name)) {
-    return Math.max(1, Math.round(file.size / 3_500))
-  }
-
-  return Math.max(1, Math.round(file.size / 40_000))
-}
-
-async function resolvePageCount(files: File[]) {
-  const counts = await Promise.all(files.map((file) => countFilePages(file)))
-  return counts.reduce((total, count) => total + count, 0)
-}
-
 /** Version 5 workspace — opened from the Review Jobs table via /version5/jobs/:jobId. */
 export function Version5Workspace() {
   const navigate = useNavigate()
@@ -954,6 +1012,18 @@ export function Version5Workspace() {
   } = useOutletContext<Version5JobsContext>()
 
   const jobId = Number(jobIdParam)
+
+  const { prevJob, nextJob } = useMemo(() => {
+    const ordered = sortJobs(jobs)
+    const index = ordered.findIndex((job) => job.id === jobId)
+    if (index < 0) return { prevJob: null, nextJob: null }
+    return {
+      prevJob: ordered[index - 1] ?? null,
+      nextJob: ordered[index + 1] ?? null,
+    }
+  }, [jobs, jobId])
+
+  const hasListedJobs = useMemo(() => jobs.some(isListedReviewJob), [jobs])
 
   useEffect(() => {
     if (isHydrating) return
@@ -977,12 +1047,9 @@ export function Version5Workspace() {
         Skip to main content
       </a>
       <AppHeader
-        actions={(
-          <Link className="tertiary-button version5-header-jobs-link" to="/version5">
-            <List aria-hidden="true" size={15} strokeWidth={2} />
-            Review jobs
-          </Link>
-        )}
+        {...(hasListedJobs
+          ? { actions: <ReviewJobsMenu activeJobId={activeJobId} jobs={jobs} /> }
+          : {})}
         brandAriaLabel="Prototype versions"
         brandTo="/"
       />
@@ -997,13 +1064,16 @@ export function Version5Workspace() {
             <UploadView
               key={activeJob.id}
               job={activeJob}
+              nextJob={nextJob}
               onAddUploads={(entries) => addUploads(activeJob.id, entries)}
               onDecideTag={(occurrenceKey, decision) => decideTag(activeJob.id, occurrenceKey, decision)}
+              onGoToJob={(id) => navigate(`/version5/jobs/${id}`)}
               onMarkExported={() => markJobExported(activeJob.id)}
               onPatchUploadItem={(itemId, patch) => patchUploadItem(activeJob.id, itemId, patch)}
               onRemoveUploadItem={(itemId) => removeUploadItem(activeJob.id, itemId)}
               onSetViewer={(viewer) => setViewer(activeJob.id, viewer)}
               onStartReview={() => startJobReview(activeJob.id)}
+              prevJob={prevJob}
             />
           )}
         </GridLayout>

@@ -2,6 +2,7 @@ import { USE_MOCK_DATA } from "@/lib/config"
 import { getMockReview } from "@/lib/mock-review"
 import {
   alignReviewDocuments,
+  documentsHaveExtractableText,
   extractLocalReviewFromDocuments,
   isReviewResult,
   type ReviewDocumentInput,
@@ -148,24 +149,48 @@ function finalizeReview(
   }
 }
 
-function fallbackReview(items: ReviewDocumentInput[]): ReviewResponse {
-  const local = extractLocalReviewFromDocuments(items)
-  if (local.length > 0) {
-    return finalizeReview(local, items, "mock")
+/** Offline / API-fallback review built only from tags present in PDF text. */
+function highlightableReview(
+  items: ReviewDocumentInput[],
+  source: Extract<ReviewResponse["source"], "mock" | "local">,
+): ReviewResponse {
+  // Fixture mock can succeed from filenames alone — don't require extracted page text first.
+  const data = source === "mock" ? getMockReview(items) : extractLocalReviewFromDocuments(items)
+  if (data.length > 0) {
+    return finalizeReview(data, items, source)
   }
-  return finalizeReview(getMockReview(items), items, "mock")
+
+  if (!documentsHaveExtractableText(items)) {
+    throw new Error(
+      "No selectable text found in the uploaded PDFs. Scanned or image-only drawings need a text layer for extraction.",
+    )
+  }
+
+  throw new Error(
+    "No highlightable tags found in the uploaded documents. PDFs need selectable text for offline review.",
+  )
 }
 
 export async function startReview(items: ReviewDocumentInput[]): Promise<ReviewResponse> {
   if (USE_MOCK_DATA) {
-    return fallbackReview(items)
+    return highlightableReview(items, "mock")
   }
 
   try {
     const content = await requestCompletion(SYSTEM_PROMPT, buildUserPrompt(items), REVIEW_TIMEOUT_MS)
-    return finalizeReview(parseReviewContent(content), items, "api")
-  } catch {
-    return fallbackReview(items)
+    const data = parseReviewContent(content)
+    if (data.length > 0) {
+      return finalizeReview(data, items, "api")
+    }
+    return highlightableReview(items, "local")
+  } catch (error) {
+    try {
+      return highlightableReview(items, "local")
+    } catch {
+      throw error instanceof Error
+        ? error
+        : new Error("Tag extraction failed")
+    }
   }
 }
 

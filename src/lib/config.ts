@@ -1,10 +1,10 @@
 /**
  * Local-dev only. Ignored in production builds.
  *
- * `true`  → skip OpenRouter and use mock data (saves tokens while testing)
- * `false` → OpenRouter first, mock only if the API fails
+ * `true`  → skip OpenRouter; use fixture tags for generated P&IDs, else PDF text
+ * `false` → OpenRouter first; on failure, fall back to local text extraction
  *
- * Production always uses: OpenRouter → mock fallback.
+ * Fixture / local tags must exist in the PDF text layer so highlights work.
  */
 const USE_MOCK_DATA_IN_DEV = true
 

@@ -45,11 +45,18 @@ export function JobHistoryDialog({ job, onClose }: JobHistoryDialogProps) {
   })
 
   return createPortal(
-    <div className="confirm-dialog-scrim job-history-scrim" role="presentation">
+    <div
+      className="confirm-dialog-scrim job-history-scrim"
+      onClick={(event) => event.stopPropagation()}
+      onMouseDown={(event) => event.stopPropagation()}
+      role="presentation"
+    >
       <div
         aria-labelledby={titleId}
         aria-modal="true"
         className="job-history-dialog"
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
         ref={dialogRef}
         role="dialog"
       >

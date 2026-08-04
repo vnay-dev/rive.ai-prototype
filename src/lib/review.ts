@@ -10,7 +10,7 @@ export type ExtractedTag = {
 
 export type ReviewResult = ExtractedTag[]
 
-export type ReviewSource = "api" | "mock"
+export type ReviewSource = "api" | "mock" | "local"
 
 export type TagDecision = "approved" | "rejected" | "needs-review"
 
@@ -186,17 +186,29 @@ export function alignReviewDocuments(
 export function extractLocalReviewFromDocuments(
   items: ReviewDocumentInput[],
 ): ReviewResult {
-  // Common P&ID style: PSV-4015A, HBG0110, XV-200, FT 101
-  const tagPattern = /\b[A-Z]{1,8}[\s\-/]?[A-Z]{0,4}\d{2,6}[A-Z]?\d*\b/gi
+  const tagPatterns = [
+    // PSV-4015A, HBG-0110, XV-200, FT 101
+    /\b[A-Z]{1,8}[\s\-/]?[A-Z]{0,4}\d{2,6}[A-Z]?\d*\b/gi,
+    // 2HV-101A, 10PA-203
+    /\b\d{1,3}[A-Z]{1,6}[\s\-/]?\d{2,5}[A-Z]?\b/gi,
+  ]
+
   const results: ReviewResult = []
   const seen = new Set<string>()
 
   for (const item of items) {
     for (const page of item.pages) {
-      const matches = page.text.match(tagPattern) ?? []
+      const searchTexts = [page.text, compactFragmentedTagText(page.text)]
+      const matches = searchTexts.flatMap((text) => (
+        tagPatterns.flatMap((pattern) => text.match(pattern) ?? [])
+      ))
+
       for (const raw of matches) {
-        const tag = raw.replace(/\s+/g, "").toUpperCase()
+        // Prefer compact form with hyphens preserved from the source text.
+        const tag = normalizeExtractedTag(raw)
         if (tag.length < 4) continue
+        if (!/\d/.test(tag) || !/[A-Z]/.test(tag)) continue
+
         const key = `${tag}::${item.name}::${page.page}`
         if (seen.has(key)) {
           const existing = results.find((entry) => (
@@ -215,11 +227,33 @@ export function extractLocalReviewFromDocuments(
           document: item.name,
           page: page.page,
           occurrences: 1,
-          confidence: 0.72,
+          confidence: 0.78,
         })
       }
     }
   }
 
   return results
+}
+
+/** Rejoin CAD/PDF glyph spacing so "P - 1 0 1" / "PSV 4015 A" become tag-like tokens. */
+function compactFragmentedTagText(text: string) {
+  return text
+    .replace(/\s*([-/–—])\s*/g, "$1")
+    .replace(/\b([A-Z]{1,8})\s+(?=[A-Z]{1,4}\d)/gi, "$1")
+    .replace(/\b([A-Z]{1,8})\s+(?=[-/]?\d)/gi, "$1")
+    .replace(/\b(\d{1,3}[A-Z]{1,6})\s+(?=[-/]?\d)/gi, "$1")
+    .replace(/(\d)\s+(?=\d)/g, "$1")
+    .replace(/(\d)\s+(?=[A-Z]\b)/gi, "$1")
+}
+
+function normalizeExtractedTag(raw: string) {
+  return raw
+    .replace(/\s+/g, "")
+    .replace(/[–—]/g, "-")
+    .toUpperCase()
+}
+
+export function documentsHaveExtractableText(items: ReviewDocumentInput[]) {
+  return items.some((item) => item.pages.some((page) => page.text.trim().length > 0))
 }

@@ -1,6 +1,6 @@
-import { useId, useMemo, useRef } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { X } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 
 import { ExportMenu } from "@/components/review/export-menu"
 import { useModalFocus } from "@/hooks/use-modal-focus"
@@ -17,6 +17,8 @@ type ReviewSummaryDialogProps = {
   onSelectOccurrence: (index: number) => void
   onExported: () => void
 }
+
+const ROWS_PER_PAGE = 8
 
 function statusLabel(decision: TagDecision | undefined) {
   if (decision === "approved") return "Approved"
@@ -39,6 +41,7 @@ export function ReviewSummaryDialog({
   const titleId = `${dialogId}-title`
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const [page, setPage] = useState(0)
 
   useModalFocus({
     containerRef: dialogRef,
@@ -74,6 +77,24 @@ export function ReviewSummaryDialog({
       .filter(({ occurrence }) => Boolean(decisions[occurrence.key])),
     [decisions, occurrences],
   )
+
+  const pageCount = Math.max(1, Math.ceil(tableRows.length / ROWS_PER_PAGE))
+  const currentPage = Math.min(page, pageCount - 1)
+  const pageRows = tableRows.slice(
+    currentPage * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE + ROWS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setPage(0)
+  }, [tableRows.length])
+
+  useEffect(() => {
+    if (!activeKey) return
+    const activeIndex = tableRows.findIndex(({ occurrence }) => occurrence.key === activeKey)
+    if (activeIndex < 0) return
+    setPage(Math.floor(activeIndex / ROWS_PER_PAGE))
+  }, [activeKey, tableRows])
 
   return createPortal(
     <div
@@ -144,7 +165,7 @@ export function ReviewSummaryDialog({
                   </td>
                 </tr>
               ) : (
-                tableRows.map(({ occurrence, index }) => {
+                pageRows.map(({ occurrence, index }) => {
                   const decision = decisions[occurrence.key]
                   return (
                     <tr
@@ -173,6 +194,32 @@ export function ReviewSummaryDialog({
               )}
             </tbody>
           </table>
+
+          {tableRows.length > ROWS_PER_PAGE && (
+            <nav aria-label="Summary pages" className="review-summary-dialog-pagination">
+              <button
+                aria-label="Previous page"
+                className="review-summary-dialog-page-button"
+                disabled={currentPage === 0}
+                onClick={() => setPage(currentPage - 1)}
+                type="button"
+              >
+                <ChevronLeft aria-hidden="true" size={15} strokeWidth={2} />
+              </button>
+              <span aria-live="polite" className="review-summary-dialog-page-label">
+                Page {currentPage + 1} of {pageCount}
+              </span>
+              <button
+                aria-label="Next page"
+                className="review-summary-dialog-page-button"
+                disabled={currentPage >= pageCount - 1}
+                onClick={() => setPage(currentPage + 1)}
+                type="button"
+              >
+                <ChevronRight aria-hidden="true" size={15} strokeWidth={2} />
+              </button>
+            </nav>
+          )}
         </div>
 
         <footer className="review-summary-dialog-footer">

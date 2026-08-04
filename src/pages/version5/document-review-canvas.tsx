@@ -193,7 +193,7 @@ export function DocumentReviewCanvas({
     : activeDecision === "rejected"
       ? "Rejected"
       : activeDecision === "needs-review"
-        ? "Needs review"
+        ? "Marked for review"
         : "Open"
 
   const anchor = highlightRect ?? {
@@ -251,9 +251,9 @@ export function DocumentReviewCanvas({
             >
               <span aria-hidden="true" className="document-review-pin-mark">
                 {activeDecision === "approved"
-                  ? <Check size={13} strokeWidth={2.6} />
+                  ? <Check size={15} strokeWidth={2.6} />
                   : activeDecision === "rejected"
-                    ? <X size={13} strokeWidth={2.6} />
+                    ? <X size={15} strokeWidth={2.6} />
                     : activeDecision === "needs-review"
                       ? "?"
                       : activeIndex + 1}
@@ -274,7 +274,7 @@ export function DocumentReviewCanvas({
                   onClick={() => handleDecide("rejected")}
                   type="button"
                 >
-                  Reject
+                  {activeDecision === "rejected" ? "Rejected" : "Reject"}
                 </button>
                 <button
                   aria-pressed={activeDecision === "needs-review"}
@@ -282,7 +282,7 @@ export function DocumentReviewCanvas({
                   onClick={() => handleDecide("needs-review")}
                   type="button"
                 >
-                  Needs review
+                  {activeDecision === "needs-review" ? "Marked for review" : "Mark for review"}
                 </button>
                 <button
                   aria-pressed={activeDecision === "approved"}
@@ -290,7 +290,7 @@ export function DocumentReviewCanvas({
                   onClick={() => handleDecide("approved")}
                   type="button"
                 >
-                  Approve
+                  {activeDecision === "approved" ? "Approved" : "Approve"}
                 </button>
               </div>
               <button

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { useNavigate, useOutletContext } from "react-router-dom"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus } from "lucide-react"
 
 import { AppHeader } from "@/components/layout/app-header"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { JobActionsMenu } from "@/components/review/job-actions-menu"
 import {
   getDecidedReviewProgress,
   getJobSidebarStatus,
@@ -86,10 +86,11 @@ function progressLabel(job: RuntimeReviewJob) {
 
 export function Version5JobsPage() {
   const navigate = useNavigate()
-  const { jobs, isHydrating, createJob, deleteJob } = useOutletContext<Version5JobsContext>()
+  const { jobs, isHydrating, createJob, deleteJob, renameJob } = useOutletContext<Version5JobsContext>()
   const [query, setQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | JobSidebarStatus>("all")
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null)
+  const [editingJobId, setEditingJobId] = useState<number | null>(null)
+  const [draftName, setDraftName] = useState("")
   const [previewStep, setPreviewStep] = useState(0)
 
   const listedJobs = useMemo(() => jobs.filter(isListedReviewJob), [jobs])
@@ -104,6 +105,16 @@ export function Version5JobsPage() {
     }, PREVIEW_AUTO_ADVANCE_MS)
     return () => window.clearInterval(timer)
   }, [isEmpty])
+
+  useEffect(() => {
+    if (editingJobId == null) return
+    const job = listedJobs.find((entry) => entry.id === editingJobId)
+    if (!job) {
+      setEditingJobId(null)
+      return
+    }
+    setDraftName(job.name)
+  }, [editingJobId, listedJobs])
 
   const filteredJobs = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -139,10 +150,6 @@ export function Version5JobsPage() {
     (filter) => filter.id === "all" || statusCounts[filter.id] > 0,
   )
 
-  const pendingDeleteJob = pendingDeleteId == null
-    ? null
-    : listedJobs.find((job) => job.id === pendingDeleteId) ?? null
-
   function openJob(jobId: number) {
     navigate(`/version5/jobs/${jobId}`)
   }
@@ -153,10 +160,24 @@ export function Version5JobsPage() {
   }
 
   function handleRowKeyDown(event: KeyboardEvent<HTMLTableRowElement>, jobId: number) {
+    if (editingJobId === jobId) return
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       openJob(jobId)
     }
+  }
+
+  function startRename(job: RuntimeReviewJob) {
+    setEditingJobId(job.id)
+    setDraftName(job.name)
+  }
+
+  function saveRename(job: RuntimeReviewJob) {
+    const next = draftName.trim()
+    if (next && next !== job.name) {
+      renameJob(job.id, next)
+    }
+    setEditingJobId(null)
   }
 
   return (
@@ -295,20 +316,56 @@ export function Version5JobsPage() {
                     const status = getJobSidebarStatus(job)
                     const { decided, total } = getDecidedReviewProgress(job)
                     const progressPct = total > 0 ? Math.round((decided / total) * 100) : 0
+                    const isEditing = editingJobId === job.id
                     return (
                       <tr
-                        className="version5-jobs-row"
+                        className={`version5-jobs-row${isEditing ? " is-editing" : ""}`}
                         key={job.id}
-                        onClick={() => openJob(job.id)}
+                        onClick={() => {
+                          if (!isEditing) openJob(job.id)
+                        }}
                         onKeyDown={(event) => handleRowKeyDown(event, job.id)}
-                        tabIndex={0}
+                        tabIndex={isEditing ? -1 : 0}
                       >
                         <td>
-                          <span className="version5-jobs-name">{job.name}</span>
-                          {job.fileNames.length > 0 && (
-                            <span className="version5-jobs-meta">
-                              {job.fileNames.length} document{job.fileNames.length === 1 ? "" : "s"}
-                            </span>
+                          {isEditing ? (
+                            <input
+                              aria-label="Review job name"
+                              autoFocus
+                              className="version5-jobs-rename-input"
+                              onBlur={() => saveRename(job)}
+                              onChange={(event) => setDraftName(event.target.value)}
+                              onClick={(event) => event.stopPropagation()}
+                              onFocus={(event) => {
+                                const input = event.currentTarget
+                                const len = input.value.length
+                                requestAnimationFrame(() => {
+                                  input.setSelectionRange(len, len)
+                                })
+                              }}
+                              onKeyDown={(event) => {
+                                event.stopPropagation()
+                                if (event.key === "Enter") {
+                                  event.preventDefault()
+                                  event.currentTarget.blur()
+                                }
+                                if (event.key === "Escape") {
+                                  event.preventDefault()
+                                  setDraftName(job.name)
+                                  setEditingJobId(null)
+                                }
+                              }}
+                              value={draftName}
+                            />
+                          ) : (
+                            <>
+                              <span className="version5-jobs-name">{job.name}</span>
+                              {job.fileNames.length > 0 && (
+                                <span className="version5-jobs-meta">
+                                  {job.fileNames.length} document{job.fileNames.length === 1 ? "" : "s"}
+                                </span>
+                              )}
+                            </>
                           )}
                         </td>
                         <td>
@@ -335,17 +392,11 @@ export function Version5JobsPage() {
                           </time>
                         </td>
                         <td className="version5-jobs-actions">
-                          <button
-                            aria-label={`Delete ${job.name}`}
-                            className="version5-jobs-delete"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              setPendingDeleteId(job.id)
-                            }}
-                            type="button"
-                          >
-                            <Trash2 aria-hidden="true" size={15} strokeWidth={2} />
-                          </button>
+                          <JobActionsMenu
+                            job={job}
+                            onDelete={() => deleteJob(job.id)}
+                            onRename={() => startRename(job)}
+                          />
                         </td>
                       </tr>
                     )
@@ -356,33 +407,6 @@ export function Version5JobsPage() {
           )}
         </div>
       </main>
-
-      {pendingDeleteJob && (
-        <ConfirmDialog
-          cancelLabel="Cancel"
-          confirmLabel="Delete job"
-          confirmTone="danger"
-          description={`Delete “${pendingDeleteJob.name}”? This cannot be undone.`}
-          onCancel={() => {
-            setPendingDeleteId(null)
-            queueMicrotask(() => {
-              if (document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur()
-              }
-            })
-          }}
-          onConfirm={() => {
-            deleteJob(pendingDeleteJob.id)
-            setPendingDeleteId(null)
-            queueMicrotask(() => {
-              if (document.activeElement instanceof HTMLElement) {
-                document.activeElement.blur()
-              }
-            })
-          }}
-          title="Delete review job"
-        />
-      )}
     </div>
   )
 }

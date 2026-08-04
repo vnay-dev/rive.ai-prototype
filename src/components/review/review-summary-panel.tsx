@@ -18,7 +18,9 @@ type TagFindingRow = {
 }
 
 function TagStatusCell({ approved, rejected }: { approved: number; rejected: number }) {
-  if (approved === 0 && rejected === 0) return <>—</>
+  if (approved === 0 && rejected === 0) {
+    return <span className="tag-decision-chip is-empty">No decision</span>
+  }
 
   if (rejected === 0) {
     return <span className="tag-decision-chip is-approved">Approved</span>

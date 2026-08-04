@@ -450,22 +450,26 @@ export function useReviewJobs() {
       void suggestJobName(jobId, entries)
     }
 
-    void buildReviewDocuments(entries.map((entry) => ({
+    // Index only a small sample for search — full extraction of large folders hangs the UI.
+    const indexSample = entries.slice(0, 5).map((entry) => ({
       displayName: entry.displayName,
       kind: entry.kind,
       byteSize: entry.byteSize,
-      pageCount: null,
-      files: entry.files,
-    }))).then((documents) => {
-      if (!jobsRef.current.some((entry) => entry.id === jobId)) return
-      updateJob(jobId, (entry) => ({
-        ...entry,
-        fileContent: [
-          ...entry.fileContent,
-          ...documents.flatMap((document) => document.pages.map((page) => page.text)),
-        ],
-      }))
-    })
+      pageCount: null as number | null,
+      files: entry.files.slice(0, 3),
+    }))
+    if (indexSample.length > 0) {
+      void buildReviewDocuments(indexSample).then((documents) => {
+        if (!jobsRef.current.some((entry) => entry.id === jobId)) return
+        updateJob(jobId, (entry) => ({
+          ...entry,
+          fileContent: [
+            ...entry.fileContent,
+            ...documents.flatMap((document) => document.pages.map((page) => page.text)),
+          ],
+        }))
+      })
+    }
 
     return created.map((item) => item.id)
   }, [suggestJobName, updateJob])

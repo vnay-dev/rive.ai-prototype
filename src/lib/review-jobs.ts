@@ -418,8 +418,11 @@ export function toUserFacingReviewError(error: unknown) {
   if (lower.includes("schema") || lower.includes("empty")) {
     return "Extraction returned an unexpected result. Try again."
   }
-  if (lower.includes("quota") || lower.includes("429")) {
-    return "Extraction limit reached. Wait a moment, then try again."
+  if (lower.includes("highlightable") || lower.includes("selectable text") || lower.includes("text layer")) {
+    if (lower.includes("no selectable text") || lower.includes("image-only") || lower.includes("text layer")) {
+      return "No selectable text in these PDFs. Use text-based exports (not scanned images), or try again later."
+    }
+    return "No tags found in document text. Use PDFs with selectable text, or configure extraction."
   }
   if (raw.trim()) {
     // Prefer a known mapped message; avoid dumping provider jargon.
